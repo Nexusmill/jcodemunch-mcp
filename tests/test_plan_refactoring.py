@@ -1720,8 +1720,10 @@ class TestLanguageCoverage:
 
         # Data formats and templating engines are exempt — they have no import
         # syntax of their own (a template refactor uses the underlying language).
+        # nexusmill-local: markdown/html are document languages (section symbols
+        # only, f219d81) — no import syntax either.
         from jcodemunch_mcp.parser.template_shared import TEMPLATE_ENGINE_LANGUAGES
-        exempt = {"toml", "xml", "json", "yaml", "ansible", "openapi"} | set(TEMPLATE_ENGINE_LANGUAGES)
+        exempt = {"toml", "xml", "json", "yaml", "ansible", "openapi", "markdown", "html"} | set(TEMPLATE_ENGINE_LANGUAGES)
         expected = registry_langs - exempt
         missing = expected - import_langs
 
@@ -1738,8 +1740,10 @@ class TestLanguageCoverage:
 
         # Data formats and templating engines are exempt — they have no symbol
         # definitions of their own (a template refactor uses the underlying language).
+        # nexusmill-local: markdown sections/html are document structure, not
+        # refactorable definitions (f219d81) — exempt like the data formats.
         from jcodemunch_mcp.parser.template_shared import TEMPLATE_ENGINE_LANGUAGES
-        exempt = {"toml", "xml", "json", "yaml", "ansible", "openapi"} | set(TEMPLATE_ENGINE_LANGUAGES)
+        exempt = {"toml", "xml", "json", "yaml", "ansible", "openapi", "markdown", "html"} | set(TEMPLATE_ENGINE_LANGUAGES)
         expected = registry_langs - exempt
         missing = expected - def_langs
 

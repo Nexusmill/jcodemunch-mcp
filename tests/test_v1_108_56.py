@@ -104,8 +104,10 @@ class TestNoChangeRefreshesGitHead:
             incremental=True, identity_mode="local")["repo"]}, store_path)
         assert idx.git_head == head_a
 
-        # Commit a change to a NON-indexed file only.
-        (repo / "README.md").write_text("# hello world\n")
+        # Commit a change to a NON-indexed file only. (nexusmill-local: was
+        # README.md, but markdown is indexed since f219d81; an extensionless
+        # LICENSE is still outside every language mapping.)
+        (repo / "LICENSE").write_text("hello world\n")
         _git(repo, "add", "-A")
         _git(repo, "commit", "-m", "docs only")
         head_b = _head(repo)
