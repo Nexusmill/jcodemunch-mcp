@@ -1966,8 +1966,19 @@ MARKDOWN_SPEC = LanguageSpec(
     type_patterns=[],
 )
 
+
+# HTML: a text-searchable FILE class, deliberately emitting no symbols
+# (jcm#452 triage). Empty symbol_node_types means an indexed .html contributes
+# zero entries to index.symbols, so symbol-driven consumers (find_dead_code's
+# per-symbol sweep, health-radar axes, importance/Gini maths) are unaffected;
+# what changes is that the file itself enters index.source_files, which is what
+# flow_edges._resolve_template needs to resolve render("page.html") edges.
+# Rides the same bundled html grammar RAZOR_SPEC already uses.
+# Known interaction, stated rather than discovered from a grade change: an
+# indexed .html with no importers is still a dead FILE under the current rule;
+# teaching find_dead_code to honour render edges is a separate issue.
 HTML_SPEC = LanguageSpec(
-    ts_language="html",   # same bundled grammar RAZOR_SPEC already rides
+    ts_language="html",
     symbol_node_types={},
     name_fields={},
     param_fields={},
