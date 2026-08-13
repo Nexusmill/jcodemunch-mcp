@@ -1,5 +1,112 @@
 # Changelog
 
+## [Unreleased]
+
+### `.html` / `.htm` are indexable as a text-searchable file class ([#452](https://github.com/jgravelle/jcodemunch-mcp/issues/452), [PR #459](https://github.com/jgravelle/jcodemunch-mcp/pull/459) by [@phantom-man](https://github.com/phantom-man))
+
+`.html` and `.htm` register on the bundled `html` grammar — the one `RAZOR_SPEC`
+already rides, so no new dependency — with **empty `symbol_node_types`**. An
+indexed template contributes **zero** entries to `index.symbols`, so every
+symbol-driven consumer (`find_dead_code`'s per-symbol sweep, the health-radar
+axes, `get_symbol_importance`, the Gini concentration maths) is unaffected. What
+changes is that the file enters `index.source_files`.
+
+That is the point of the change, not a side effect. `flow_edges._resolve_template`
+resolves a `render(request, "page.html")` string to its template **only when that
+file is indexed**, so before this it returned `None` on every Django, Flask,
+Express and Rails repo we touch — the `views` annotation on `get_signal_chains`
+and the render edges in `get_endpoint_impact` were degraded, silently, for
+exactly that reason.
+
+⚠ **The markdown half of #452 was declined**, and not on scope grounds:
+`find_dead_code` is file-driven with no language filter, nothing imports a `.md`
+file, and on the reporter's own numbers 2,410 new section symbols would have
+landed in dead code — collapsing the `dead_code` radar axis and the composite
+grade we publish weekly for third-party repos. **A repo would have received a
+worse public grade for being well documented.** Section-level doc retrieval is
+[jdocmunch](https://github.com/jgravelle/jdocmunch-mcp)'s product and ships today.
+
+⚠ **The known interaction shipped stated rather than discovered**, in a comment at
+`HTML_SPEC`: an indexed `.html` with no importers was still a dead *file* under
+the file-level rule. **That caveat is closed in this same unreleased window** by
+the #461 fix below, which teaches `find_dead_code` that a resolved render edge is
+a reachability edge.
+
+### `find_dead_code` reported a rendered template as dead at confidence 1.0 ([#461](https://github.com/jgravelle/jcodemunch-mcp/issues/461))
+
+A template is never *imported*. It is reached by a render edge — a string
+argument (`render(request, "page.html")`) that `flow_edges` resolves to a file.
+`find_dead_code` classified purely from the import graph, so an actively
+rendered template came back `zero_importers` while
+`flow_edges._resolve_template` resolved that same file from the same index in
+the same process.
+
+Resolved render edges now contribute live roots, surfaced separately as
+`render_reachable_count` and an analysis note: a file kept alive by an inbound
+render edge is reachable for a *different reason* than one that looks like an
+entry point, and a caller auditing the verdict could not otherwise tell them
+apart from a single count.
+
+⚠⚠ **The confidence value is the sharp part, not the misclassification.** `1.0`
+is reserved for "no importers and not a test file" — a test file gets `0.9`, a
+cascading case `0.7`. So the one file class indexed *because* another subsystem
+can prove it reachable was reported dead with no hedge attached, above the
+default `min_confidence` of `0.8`, meaning it could not be filtered out without
+discarding genuine findings too. **A wrong answer delivered at maximum certainty
+is worse than the same wrong answer delivered tentatively**, because the
+confidence is exactly what a caller uses to decide whether to look.
+
+⚠ **Deliberately NOT an extension exemption**, and two tests exist to fail
+against one. A template that nothing renders **is** dead and is still reported;
+`.html` is not special, having an inbound render edge is. An exemption would
+trade a false positive for a false negative — the worse direction, because
+silence reads as "nothing found" — and would not generalise to the other edge
+families `resolve_flow_edges` already emits.
+
+⚠ **This is not a regression from [#459](https://github.com/jgravelle/jcodemunch-mcp/pull/459) and that PR is not the cause.** Before the HTML
+file class, `.html` was not indexed, so it could not be reported dead — it also
+could not be resolved, which is the silent degradation
+[#452](https://github.com/jgravelle/jcodemunch-mcp/issues/452) was accepted to
+fix. The trade was made knowingly and stated in a comment at `HTML_SPEC`.
+
+⚠ **Two corrections to the issue's own text, made rather than quietly
+contradicted.** It claimed this would newly introduce content scanning to a tool
+that "reads only the import graph"; `find_dead_code` already reads file content
+at two sites (`_package_json_entries`, the `__main__` guard), so the fix is
+always-on and the design question the issue raised does not arise. It also
+flagged the observatory-grade question as unmeasured; measured, templates emit no
+symbols and `dead_symbol_count` is 0, so the symbol-driven `dead_code` radar axis
+does not move.
+
+⚠ Scope checked rather than assumed: **`get_dead_code_v2` does not share this
+defect.** It returns symbols only and templates emit none — 0 template-derived
+entries on the reproduction. Worth stating because
+[#446](https://github.com/jgravelle/jcodemunch-mcp/issues/446) went the other
+way, where both dead-code tools needed the same fix and doing one would have been
+half a job.
+
+The resolver call degrades to the previous behaviour and logs at debug on
+failure: a flow-edge resolution problem must never fail this tool.
+
+### Process liveness now verifies identity, not just PID occupancy ([#450](https://github.com/jgravelle/jcodemunch-mcp/issues/450))
+
+`_is_pid_alive` answered "is this PID taken?", not "is my process still there?"
+After the OS recycles a PID, a process-registry row or coordination-lock file
+naming a long-dead holder read as live indefinitely — observed in the field as
+two-week-old registry rows resolving to a Chrome renderer and an AMD service,
+and a recycled PID could equally "hold" a watcher or index-write lock forever.
+
+`register()` and `acquire()` now record the holder's OS creation time
+(Windows: `GetProcessTimes`, absolute FILETIME; Linux: `/proc/<pid>/stat`
+starttime, deliberately kept boot-relative so `settimeofday`-class clock steps
+— suspend/resume, VM restore, first NTP sync — cannot move every recorded
+value at once). Readers (`live_processes`, `inspect`, `acquire` stale-recovery)
+treat alive-PID-but-mismatched-creation-time as dead → stale → prune/reclaim.
+Rows and locks written by earlier versions carry no `create_time` and keep
+liveness-only behavior, so mixed-version stores degrade instead of
+mass-pruning. The watcher's `_is_pid_alive` wrapper, which bypassed the
+identity check and had no production caller, is removed.
+
 ## [1.108.276] - 2026-08-13 - A Windows drive-root child can prove it is a repository
 
 ### Exact Git working trees no longer trip the broad-root guard ([#438](https://github.com/jgravelle/jcodemunch-mcp/issues/438))
@@ -15758,7 +15865,7 @@ Thanks to **@MariusAdrian88** for this contribution (#244).
 - **`cross_repo_default` config key** — boolean default for the `cross_repo` parameter across all import graph tools. Env var: `JCODEMUNCH_CROSS_REPO_DEFAULT`. Default: `false`.
 - **53 new tests** (1431 total, 9 skipped).
 
-## [1.12.9] — docs patch 2026-03-30
+## Docs patch — 2026-03-30 (no version bump)
 
 ### Changed
 - **QUICKSTART.md Step 3** — upgraded AGENT_HOOKS.md footnote to an `[!IMPORTANT]` callout naming the "pressure bypass" failure mode (agent sees CLAUDE.md rule, ignores it under load) and explaining why hooks are needed for hard enforcement.

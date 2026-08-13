@@ -9,10 +9,12 @@ We cannot reap another program's children. What we can do is stop the sprawl
 being invisible, which is the part that let it reach 25.
 
 Each server writes one small file on startup and removes it on clean exit.
-Readers filter by PID liveness and prune what they find dead, so a killed
-process leaves no lasting trace and there is no daemon to keep the registry
-honest. This deliberately reuses ``process_locks._is_pid_alive`` rather than
-inventing a second liveness notion.
+Readers filter by PID liveness AND creation-time identity (jcm#450: a recycled
+PID is pruned like a dead one, not mistaken for the old server) and prune what
+they find dead, so a killed process leaves no lasting trace and there is no
+daemon to keep the registry honest. This deliberately reuses
+``process_locks._is_live_holder`` rather than inventing a second liveness
+notion.
 
 Contains no repo paths, no queries, and no file contents. Written under the
 index store, disclosed in the README's background-behavior section alongside the
@@ -29,7 +31,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
-from .process_locks import _client_id, _is_live_holder, process_create_time
+from .process_locks import _client_id, _is_live_holder, _process_create_time
 
 logger = logging.getLogger(__name__)
 
@@ -95,7 +97,7 @@ def register(transport: str, version: str, storage_path: Optional[str] = None) -
             "version": version,
             "started_at": datetime.now(timezone.utc).isoformat(),
             # Identity anchor against PID reuse (jcm#450).
-            "create_time": process_create_time(os.getpid()),
+            "create_time": _process_create_time(os.getpid()),
         }
         tmp = path.with_suffix(f".tmp.{os.getpid()}")
         tmp.write_text(json.dumps(payload), encoding="utf-8")
