@@ -93,3 +93,4 @@ mcpb/manifest.json
 # hold raw transcripts. Neither is ever committed.
 benchmarks/codex_surface/.codexhome/
 benchmarks/codex_surface/results/
+.adversary/
