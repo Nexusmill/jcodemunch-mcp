@@ -1,0 +1,46 @@
+{
+ "type": "CLEAR",
+ "commit": "e8beefbda7c4f155976c715591fc872b0c26c731",
+ "when": "20260831-105443",
+ "files": {
+  ".githooks/.gitattributes": {
+   "sha": "77a9a685825b85360cf7b129be4ad5c349d48eaa36d2d3bc2a1eb1b7724deec4",
+   "model": "z-ai/glm-5.2",
+   "when": "20260831-105442",
+   "artifact": ".adversary\\reviews\\gate_20260831-105442.md"
+  },
+  ".githooks/adversary_audit.py": {
+   "sha": "28ebdc7b4162c932308fa70d1c249d57f04ce7d5954cd544fe1fbce03e9426db",
+   "model": "z-ai/glm-5.2",
+   "when": "20260831-105442",
+   "artifact": ".adversary\\reviews\\gate_20260831-105442.md"
+  },
+  ".githooks/adversary_baseline": {
+   "sha": "5dab8168ca380b3dde087f8d35383d06f0b24edfbfeeb1ddc43673197b813bbb",
+   "model": "z-ai/glm-5.2",
+   "when": "20260831-105442",
+   "artifact": ".adversary\\reviews\\gate_20260831-105442.md"
+  },
+  ".githooks/post-commit": {
+   "sha": "377b1254489c2fe84091aa3cc269f4083baa3d44d3781e47c635e88249387268",
+   "model": "z-ai/glm-5.2",
+   "when": "20260831-105442",
+   "artifact": ".adversary\\reviews\\gate_20260831-105442.md"
+  },
+  ".githooks/pre-commit": {
+   "sha": "72864701ba348f1f0486994283215aa3dd35341edc15b4ce9276ced457cd32b9",
+   "model": "z-ai/glm-5.2",
+   "when": "20260831-105442",
+   "artifact": ".adversary\\reviews\\gate_20260831-105442.md"
+  },
+  ".githooks/pre-push": {
+   "sha": "8d44759bf78782df62fbdcb27189abfd1b5ea96d03ac7ccd0c8d3c3609d7b761",
+   "model": "z-ai/glm-5.2",
+   "when": "20260831-105442",
+   "artifact": ".adversary\\reviews\\gate_20260831-105442.md"
+  }
+ },
+ "artifacts": {
+  ".adversary\\reviews\\gate_20260831-105442.md": "model: z-ai/glm-5.2 | usage: {'prompt_tokens': 7525, 'completion_tokens': 23293, 'total_tokens': 30818, 'cost': 0.05483658, 'is_byok': False, 'prompt_tokens_details': {'cached_tokens': 2816, 'cache_write_tokens': 0, 'audio_tokens': 0, 'video_tokens': 0}, 'cost_details': {'upstream_inference_cost': 0.05483658, 'upstream_inference_prompt_cost': 0.00359198, 'upstream_inference_completions_cost': 0.0512446}, 'completion_tokens_details': {'reasoning_tokens': 22524, 'image_tokens': 0, 'audio_tokens': 0}} | files: ['.githooks/.gitattributes', '.githooks/adversary_audit.py', '.githooks/adversary_baseline', '.githooks/post-commit', '.githooks/pre-commit', '.githooks/pre-push']\n\nI've audited the change set as a pre-commit adversary, hunting for defects the change INTRODUCES or ENABLES.\n\n**What's added:** the `.githooks/` gate scaffolding (pre-commit / post-commit / pre-push shims), a vendored post-hoc audit tripwire (`adversary_audit.py`), a baseline pin file, a `.gitattributes` to keep the shims LF-clean, and `.adversary/` is added to `.gitignore`.\n\n**Verification of `adversary_audit.py`:**\n- `_is_code`: `str.startswith` accepts the tuple `GATED_PREFIXES` correctly; `splitext(...)[1].lower()` handles no-extension paths (returns `\"\"`, not in `CODE_EXTS`) \u2014 fine.\n- `_changed_code`: parent resolution via `rev^1` with `EMPTY_TREE` fallback for root commits is correct; `--name-status -M` parse handles `A/C/M` (C is dead under `-M`-only, harmless), `R` (both code\u2192code records only the new path; code\u2192non-code records a `D:` removal; non-code\u2192code records new only) and `D` correctly; `blob_sha` uses `rev:path` / `base:path` which is unambiguous and `subprocess` is list-form (no shell injection).\n- `_audit_commit`: no-note \u2192 violation; bad JSON \u2192 violation (`JSONDecodeError` is a `ValueError` subclass, caught); missing key / sha mismatch \u2192 violation; `OVERRIDE` \u2192 override; unknown type \u2192 violation. Logic is sound.\n- `main`: baseline resolution (file \u2192 first token, `^{commit}` verification), `rev-list --reverse baseline..HEAD`, skip non-code, exit 1 on violations (or overrides under `--strict-override`), exit 2 on env errors \u2014 all correct.\n\n**On the bootstrapping concern:** this arming commit sits after `adversary_baseline`, so the audit would flag it UNNOTARIZED unless a note exists for it. But that is the inherent chicken-and-egg of arming a notarization gate, the hooks can only fire once `core.hooksPath` is set (which the owner does before committing the arming set, so `pre-commit check` writes the clearance and `post-commit record` notarizes this very commit), and the author's rebuttal explicitly accounts for first-time arming via `install_gate.py`. Not a code defect.\n\n**On the shims:** the `GATE`/`PYBIN` paths are single-machine (`C:/Users/User/...`); on any other machine the pre-commit/pre-push fail CLOSED (by design) and the post-commit only warns (by design \u2014 absence-of-note is the tripwire signal). `pre-push \"$1\"` correctly forwards the remote name; `exec` inherits stdin for the ref list. `adversary_audit.py` itself is self-contained (stdlib only, uses `shutil.which(\"git\")`), so CI runs it without the Tools repo.\n\n**Schema claim:** the audit assumes `record` writes `{\"type\": ..., \"files\": {path: {\"sha\": ...}}}`; that file isn't in the provided bytes, so it can't be independently verified \u2014 but the rebuttal states these are byte-copies of canonicals that were cleared together, and there's nothing in the visible bytes that contradicts the assumed schema. No contradicting evidence in the diff.\n\nNo confirmed defect in the bytes provided.\n\nVERDICT: CLEAR"
+ }
+}
