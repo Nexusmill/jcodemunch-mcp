@@ -1,0 +1,230 @@
+{
+  "C:\\Users\\User\\source\\repos\\jcodemunch-mcp\\src\\jcodemunch_mcp\\storage\\sqlite_store.py": {
+    "rel": "src\\jcodemunch_mcp\\storage\\sqlite_store.py",
+    "modes": {
+      "bug": {
+        "sha": "811ec1b7db80b55f20eeb0e354a62b1f060e798777d69982f1b025969d784b49",
+        "output": "C:\\Users\\User\\source\\repos\\jcodemunch-mcp\\.colibri_reviews\\src__jcodemunch_mcp__storage__sqlite_store.py__bug__811ec1b7.md",
+        "reviewed_at": "2026-09-05 23:30",
+        "model": "claude-fable-5-1 (Phase-3 gate over grok-4.6)",
+        "cost": 0.0
+      }
+    }
+  },
+  "C:\\Users\\User\\source\\repos\\jcodemunch-mcp\\src\\jcodemunch_mcp\\config.py": {
+    "rel": "src\\jcodemunch_mcp\\config.py",
+    "modes": {
+      "bug": {
+        "sha": "78678210ba3a2cdddbdfa9963752315be0bde43add676cfc82f8d1462fd39429",
+        "output": "C:\\Users\\User\\source\\repos\\jcodemunch-mcp\\.colibri_reviews\\src__jcodemunch_mcp__config.py__bug__78678210.md",
+        "reviewed_at": "2026-09-05 23:30",
+        "model": "claude-fable-5-1 (Phase-3 gate over z-ai/glm-5.3-flash)",
+        "cost": 0.0
+      }
+    }
+  },
+  "C:\\Users\\User\\source\\repos\\jcodemunch-mcp\\src\\jcodemunch_mcp\\tools\\search_symbols.py": {
+    "rel": "src\\jcodemunch_mcp\\tools\\search_symbols.py",
+    "modes": {
+      "bug": {
+        "sha": "45417d243830df210beb19100a7bdfcf1ddf9a4af9f4bae189b1939fec917f9a",
+        "output": "C:\\Users\\User\\source\\repos\\jcodemunch-mcp\\.colibri_reviews\\src__jcodemunch_mcp__tools__search_symbols.py__bug__45417d24.md",
+        "reviewed_at": "2026-09-05 23:30",
+        "model": "claude-fable-5-1 (Phase-3 gate over z-ai/glm-5.3-flash)",
+        "cost": 0.0
+      }
+    }
+  },
+  "C:\\Users\\User\\source\\repos\\jcodemunch-mcp\\src\\jcodemunch_mcp\\tools\\index_folder.py": {
+    "rel": "src\\jcodemunch_mcp\\tools\\index_folder.py",
+    "modes": {
+      "bug": {
+        "sha": "18b712cf3be2932748c3738c540f87e8bacbd7bdbad3b79f1581d75dc05cd5fa",
+        "output": "C:\\Users\\User\\source\\repos\\jcodemunch-mcp\\.colibri_reviews\\src__jcodemunch_mcp__tools__index_folder.py__bug__18b712cf.md",
+        "reviewed_at": "2026-09-05 23:30",
+        "model": "claude-fable-5-1 (Phase-3 gate over grok-4.3)",
+        "cost": 0.0
+      }
+    }
+  },
+  "C:\\Users\\User\\source\\repos\\jcodemunch-mcp\\src\\jcodemunch_mcp\\tools\\plan_refactoring.py": {
+    "rel": "src\\jcodemunch_mcp\\tools\\plan_refactoring.py",
+    "modes": {
+      "bug": {
+        "sha": "0b7ee24fa316fe5b333471234615cc7affdaad239b0ed8caeaea7b5f8de67912",
+        "output": "C:\\Users\\User\\source\\repos\\jcodemunch-mcp\\.colibri_reviews\\src__jcodemunch_mcp__tools__plan_refactoring.py__bug__0b7ee24f.md",
+        "reviewed_at": "2026-09-05 23:30",
+        "model": "claude-fable-5-1 (Phase-3 gate over grok-4.3)",
+        "cost": 0.0
+      }
+    }
+  },
+  "C:\\Users\\User\\source\\repos\\jcodemunch-mcp\\src\\jcodemunch_mcp\\storage\\token_tracker.py": {
+    "rel": "src\\jcodemunch_mcp\\storage\\token_tracker.py",
+    "modes": {
+      "bug": {
+        "sha": "133e72bbbe7dd20e9927596cffeb42da3dfd9eb2295fcec409f1b18d2482883a",
+        "output": "C:\\Users\\User\\source\\repos\\jcodemunch-mcp\\.colibri_reviews\\src__jcodemunch_mcp__storage__token_tracker.py__bug__133e72bb.md",
+        "reviewed_at": "2026-09-05 23:30",
+        "model": "claude-fable-5-1 (Phase-3 gate over grok-4.3)",
+        "cost": 0.0
+      }
+    }
+  },
+  "C:\\Users\\User\\source\\repos\\jcodemunch-mcp\\src\\jcodemunch_mcp\\watcher.py": {
+    "rel": "src\\jcodemunch_mcp\\watcher.py",
+    "modes": {
+      "bug": {
+        "sha": "4f4e844096a34e42bbea3958c118432f8b4b57be93315f32caacee6ca2124ac1",
+        "output": "C:\\Users\\User\\source\\repos\\jcodemunch-mcp\\.colibri_reviews\\src__jcodemunch_mcp__watcher.py__bug__4f4e8440.md",
+        "reviewed_at": "2026-09-05 23:30",
+        "model": "claude-fable-5-1 (Phase-3 gate over grok-4.3)",
+        "cost": 0.0
+      }
+    }
+  },
+  "C:\\Users\\User\\source\\repos\\jcodemunch-mcp\\src\\jcodemunch_mcp\\security.py": {
+    "rel": "src\\jcodemunch_mcp\\security.py",
+    "modes": {
+      "bug": {
+        "sha": "4b2ab9fc5c726324da81228316f93ff8ebde42d4d2bd821fe2a3e7d9fc84c464",
+        "output": "C:\\Users\\User\\source\\repos\\jcodemunch-mcp\\.colibri_reviews\\src__jcodemunch_mcp__security.py__bug__4b2ab9fc.md",
+        "reviewed_at": "2026-09-05 23:30",
+        "model": "claude-fable-5-1 (Phase-3 gate over grok-4.6)",
+        "cost": 0.0
+      }
+    }
+  },
+  "C:\\Users\\User\\source\\repos\\jcodemunch-mcp\\src\\jcodemunch_mcp\\tools\\audit_agent_config.py": {
+    "rel": "src\\jcodemunch_mcp\\tools\\audit_agent_config.py",
+    "modes": {
+      "bug": {
+        "sha": "e68d3bcdfac0a4215dcf0e2af701fd3c70117cd9702eee31c95fcbf4eb98f037",
+        "output": "C:\\Users\\User\\source\\repos\\jcodemunch-mcp\\.colibri_reviews\\src__jcodemunch_mcp__tools__audit_agent_config.py__bug__e68d3bcd.md",
+        "reviewed_at": "2026-09-05 23:30",
+        "model": "claude-fable-5-1 (Phase-3 gate over z-ai/glm-5.3-flash)",
+        "cost": 0.0
+      }
+    }
+  },
+  "C:\\Users\\User\\source\\repos\\jcodemunch-mcp\\src\\jcodemunch_mcp\\investigator\\deletion_safety.py": {
+    "rel": "src\\jcodemunch_mcp\\investigator\\deletion_safety.py",
+    "modes": {
+      "bug": {
+        "sha": "fd3453f2c83e283aa493c7155d195a2f5f9a0e3994c0c103b3b0ada575aee76e",
+        "output": "C:\\Users\\User\\source\\repos\\jcodemunch-mcp\\.colibri_reviews\\src__jcodemunch_mcp__investigator__deletion_safety.py__bug__fd3453f2.md",
+        "reviewed_at": "2026-09-05 23:30",
+        "model": "claude-fable-5-1 (Phase-3 gate over z-ai/glm-5.3-flash)",
+        "cost": 0.0
+      }
+    }
+  },
+  "C:\\Users\\User\\source\\repos\\jcodemunch-mcp\\src\\jcodemunch_mcp\\storage\\index_store.py": {
+    "rel": "src\\jcodemunch_mcp\\storage\\index_store.py",
+    "modes": {
+      "bug": {
+        "sha": "9e93dc206571a106a77af435a8b26e694cc873b1eec5324017910ce89b10caaa",
+        "output": "C:\\Users\\User\\source\\repos\\jcodemunch-mcp\\.colibri_reviews\\src__jcodemunch_mcp__storage__index_store.py__bug__9e93dc20.md",
+        "reviewed_at": "2026-09-05 23:30",
+        "model": "claude-fable-5-1 (Phase-3 gate over z-ai/glm-5.3-flash)",
+        "cost": 0.0
+      }
+    }
+  },
+  "C:\\Users\\User\\source\\repos\\jcodemunch-mcp\\src\\jcodemunch_mcp\\parser\\languages.py": {
+    "rel": "src\\jcodemunch_mcp\\parser\\languages.py",
+    "modes": {
+      "bug": {
+        "sha": "81e350492e5ef1559eee385bebf8497cd02f0f709449f36c2097fc42a9b52996",
+        "output": "C:\\Users\\User\\source\\repos\\jcodemunch-mcp\\.colibri_reviews\\src__jcodemunch_mcp__parser__languages.py__bug__81e35049.md",
+        "reviewed_at": "2026-09-05 23:30",
+        "model": "claude-fable-5-1 (Phase-3 gate over z-ai/glm-5.3-flash)",
+        "cost": 0.0
+      }
+    }
+  },
+  "C:\\Users\\User\\source\\repos\\jcodemunch-mcp\\src\\jcodemunch_mcp\\tools\\search_ast.py": {
+    "rel": "src\\jcodemunch_mcp\\tools\\search_ast.py",
+    "modes": {
+      "bug": {
+        "sha": "fb096f7faf5cf656f2636202b7fc10f425df7eaf2d8b16682c23b9a1016071a8",
+        "output": "C:\\Users\\User\\source\\repos\\jcodemunch-mcp\\.colibri_reviews\\src__jcodemunch_mcp__tools__search_ast.py__bug__fb096f7f.md",
+        "reviewed_at": "2026-09-05 23:30",
+        "model": "claude-fable-5-1 (Phase-3 gate over grok-4.3)",
+        "cost": 0.0
+      }
+    }
+  },
+  "C:\\Users\\User\\source\\repos\\jcodemunch-mcp\\src\\jcodemunch_mcp\\tools\\_call_graph.py": {
+    "rel": "src\\jcodemunch_mcp\\tools\\_call_graph.py",
+    "modes": {
+      "bug": {
+        "sha": "02260b6f258df182c343009091bd2f1736f1f270d8d65698e1a0f62713bf33c6",
+        "output": "C:\\Users\\User\\source\\repos\\jcodemunch-mcp\\.colibri_reviews\\src__jcodemunch_mcp__tools___call_graph.py__bug__02260b6f.md",
+        "reviewed_at": "2026-09-05 23:30",
+        "model": "claude-fable-5-1 (Phase-3 gate over grok-4.3)",
+        "cost": 0.0
+      }
+    }
+  },
+  "C:\\Users\\User\\source\\repos\\jcodemunch-mcp\\src\\jcodemunch_mcp\\tools\\check_delete_safe.py": {
+    "rel": "src\\jcodemunch_mcp\\tools\\check_delete_safe.py",
+    "modes": {
+      "bug": {
+        "sha": "68d723db1d40aa3c30ed9a50cd398419d56da8ccd38b4132931b41eaf1432e87",
+        "output": "C:\\Users\\User\\source\\repos\\jcodemunch-mcp\\.colibri_reviews\\src__jcodemunch_mcp__tools__check_delete_safe.py__bug__68d723db.md",
+        "reviewed_at": "2026-09-05 23:30",
+        "model": "claude-fable-5-1 (Phase-3 gate over grok-4.3)",
+        "cost": 0.0
+      }
+    }
+  },
+  "C:\\Users\\User\\source\\repos\\jcodemunch-mcp\\src\\jcodemunch_mcp\\tools\\get_blast_radius.py": {
+    "rel": "src\\jcodemunch_mcp\\tools\\get_blast_radius.py",
+    "modes": {
+      "bug": {
+        "sha": "0fa9bc127c6b8699fffa9ff9bbb019185d5c3a07f56c53d564913d68bb12d24f",
+        "output": "C:\\Users\\User\\source\\repos\\jcodemunch-mcp\\.colibri_reviews\\src__jcodemunch_mcp__tools__get_blast_radius.py__bug__0fa9bc12.md",
+        "reviewed_at": "2026-09-05 23:30",
+        "model": "claude-fable-5-1 (Phase-3 gate over grok-4.3)",
+        "cost": 0.0
+      }
+    }
+  },
+  "C:\\Users\\User\\source\\repos\\jcodemunch-mcp\\src\\jcodemunch_mcp\\parser\\imports.py": {
+    "rel": "src\\jcodemunch_mcp\\parser\\imports.py",
+    "modes": {
+      "bug": {
+        "sha": "a677573267817dcf68a5188bc303759f9bd7845d0d44500cbe7473e0b5edecfa",
+        "output": "C:\\Users\\User\\source\\repos\\jcodemunch-mcp\\.colibri_reviews\\src__jcodemunch_mcp__parser__imports.py__bug__a6775732.md",
+        "reviewed_at": "2026-09-05 23:30",
+        "model": "claude-fable-5-1 (Phase-3 gate over grok-4.3)",
+        "cost": 0.0
+      }
+    }
+  },
+  "C:\\Users\\User\\source\\repos\\jcodemunch-mcp\\src\\jcodemunch_mcp\\tools\\index_repo.py": {
+    "rel": "src\\jcodemunch_mcp\\tools\\index_repo.py",
+    "modes": {
+      "bug": {
+        "sha": "9ae704670302279a3c9b791ed8645ea8c3261bf6a4218610f0cbc24544a43eef",
+        "output": "C:\\Users\\User\\source\\repos\\jcodemunch-mcp\\.colibri_reviews\\src__jcodemunch_mcp__tools__index_repo.py__bug__9ae70467.md",
+        "reviewed_at": "2026-09-05 23:30",
+        "model": "claude-fable-5-1 (Phase-3 gate over grok-4.3)",
+        "cost": 0.0
+      }
+    }
+  },
+  "C:\\Users\\User\\source\\repos\\jcodemunch-mcp\\src\\jcodemunch_mcp\\cli\\init.py": {
+    "rel": "src\\jcodemunch_mcp\\cli\\init.py",
+    "modes": {
+      "bug": {
+        "sha": "33efde9ed40a6fa9babf62fd7abe9fe9e5403b370b88c36548758f08c40c95a1",
+        "output": "C:\\Users\\User\\source\\repos\\jcodemunch-mcp\\.colibri_reviews\\src__jcodemunch_mcp__cli__init.py__bug__33efde9e.md",
+        "reviewed_at": "2026-09-05 23:30",
+        "model": "claude-fable-5-1 (Phase-3 gate over grok-4.3)",
+        "cost": 0.0
+      }
+    }
+  }
+}
