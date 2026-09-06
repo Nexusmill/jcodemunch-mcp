@@ -1,0 +1,28 @@
+{
+ "type": "CLEAR",
+ "commit": "0fe7c3acb65b67bea82cb5cca89dcac4b4a42923",
+ "when": "20260906-144322",
+ "files": {
+  "src/jcodemunch_mcp/storage/index_store.py": {
+   "sha": "a94dcb97086a4dca36517bb246ac312e5580b8d0a2bbc920b25caadc60590fd2",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260906-143349",
+   "artifact": ".adversary\\reviews\\gate_20260906-143349.md"
+  },
+  "src/jcodemunch_mcp/storage/sqlite_store.py": {
+   "sha": "2769796c7b77cdddbb69d8f7fa3f1bae9963b167d397234b1c3775c0432944e1",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260906-143349",
+   "artifact": ".adversary\\reviews\\gate_20260906-143349.md"
+  },
+  "tests/test_branch_content_dir.py": {
+   "sha": "f5d7e917c0746fdf7fbea0a52b16ecc43f221c66dfb6e7cf5b20073dd924fc6b",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260906-143349",
+   "artifact": ".adversary\\reviews\\gate_20260906-143349.md"
+  }
+ },
+ "artifacts": {
+  ".adversary\\reviews\\gate_20260906-143349.md": "model: z-ai/glm-5.3-flash | usage: {'prompt_tokens': 55899, 'completion_tokens': 13334, 'total_tokens': 69233, 'cost': 0.007525925, 'is_byok': False, 'prompt_tokens_details': {'cached_tokens': 0, 'cache_write_tokens': 0, 'audio_tokens': 0, 'video_tokens': 0}, 'cost_details': {'upstream_inference_cost': 0.007525925, 'upstream_inference_prompt_cost': 0.004192425, 'upstream_inference_completions_cost': 0.0033335}, 'completion_tokens_details': {'reasoning_tokens': 12540, 'image_tokens': 0, 'audio_tokens': 0}} | files: ['src/jcodemunch_mcp/storage/index_store.py', 'src/jcodemunch_mcp/storage/sqlite_store.py', 'tests/test_branch_content_dir.py']\n\n## Adversarial review \u2014 round 2 verification\n\n**Rebuttal check (FINDING 1, legacy deltas):** The rebuttal is logically self-verifying and I accept it. Any successful `save_branch_delta` commits a `branch_meta` row in the same transaction *before* any body write, so \"zero `branch_meta` rows across all 33 on-disk indexes\" is a necessary-and-sufficient proof that no delta body was ever written into any base content dir \u2014 there is no legacy population to migrate, regardless of the fe2afe5 history claim. The fail-closed-to-None design covers any hypothetical residue. Not re-raised.\n\n**Gate findings 2 & 3 \u2014 verified fixed in the bytes:**\n- `dropped_files` is computed inside the write transaction (SELECT before the `replace_all` DELETE), excludes `all_affected` (so files re-touched in the same save are not unlinked), and is unlinked in the same pass as `deleted_files`. Test `test_replace_all_unlinks_the_bodies_of_files_that_dropped_out` matches the code path.\n- `delete_branch_delta` now takes `indexwrite` around both the row deletes and the rmtree, with the same raise-on-timeout shape as `save_branch_delta`. The lock spy test exercises the real `process_locks.held` (late-bound attribute lookup, so the spy observes it).\n\n**Correctness checks that passed:** reader routing (`_content_root_for`) requires *both* `branch` truthiness and `delta_files` membership, so base indexes (empty `delta_files`) and `_index=None` reads always hit the base dir; delete markers remove files from `delta_files` and their bodies; non-replace_all saves preserve untouched rows/bodies; the cache is keyed by branch, evicted on every delta write/delete; `delete_index`'s `@*` glob cannot match anything but branch dirs (`_safe_repo_component` emits only `[A-Za-z0-9._-]`, no glob metachars, no `@`); traversal protection is preserved through the new dir; offset arithmetic in the composed-read tests is arithmetically correct.\n\n**Non-blocking observations (LOW, weighed, not blocking):**\n\n1. LOW \u2014 `sqlite_store.py`, `delete_index` (new `glob(f\"{slug}@*\")` rmtree): it runs *without* the `indexwrite` lock, so it retains the same race window the gate required closed for `delete_branch_delta`. However, `delete_index` has always rmtree'd the base content dir unlocked against concurrent `incremental_save` body writes \u2014 the change extends a pre-existing unlocked destructive path rather than introducing a new failure class, the repo is being deleted anyway, and the worst outcome (a racing save raises; committed rows without bodies) fails closed. Noted; consistent with the file's accepted idiom.\n\n2. LOW \u2014 `sqlite_store.py`, `_save_branch_delta_locked` unlink pass: `dead.unlink()` can raise `PermissionError` on Windows if a reader holds the body open, aborting the save after the row commit (raw_files bodies then unwritten \u2192 fail-closed reads until a retry). Identical exposure already exists in the pre-existing `dead.unlink()` in `_incremental_save_locked`; consequence is a surfaced exception plus fail-closed reads, never corruption at wrong offsets.\n\nNeither is a defect the change introduces as a new class, and both degrade fail-closed \u2014 which is the explicit design contract of this tranche. The 8-hex slug digest is a 32-bit space, but birthday-collision territory (~65k branches) is not a realistic trigger; the `feature/x` vs `feature-x` disambiguation the comment claims does hold.\n\nVERDICT: CLEAR"
+ }
+}
