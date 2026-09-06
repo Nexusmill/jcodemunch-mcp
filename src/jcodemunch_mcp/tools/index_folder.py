@@ -955,9 +955,17 @@ def _scan_package_json_forced_paths(folder_path: Path) -> set[str]:
     return forced
 
 
-def _refresh_git_head_if_advanced(store, owner, name, folder_path, stored_head):
+def _refresh_git_head_if_advanced(store, owner, name, folder_path, stored_head, branch=""):
     """On a no-change incremental run, advance the index's stored ``git_head``
     if live HEAD has moved (#330).
+
+    ``branch`` names the branch-delta run this refresh belongs to. When set, the
+    head is written to that branch's ``branch_meta`` (an empty delta write that
+    keeps the recorded ``base_head``), never to the base index: the base was
+    indexed at ITS head, and stamping a feature branch's commit into it made
+    every later branch load report the delta stale (``base_head != git_head``)
+    while the branch's own head never advanced. ``stored_head`` is the head of
+    the view the caller compared against (the composed branch view when set).
 
     ``FreshnessProbe`` flags every result ``stale_index`` when the stored index
     SHA differs from live HEAD. A commit that changes only non-indexed files (or
@@ -979,12 +987,29 @@ def _refresh_git_head_if_advanced(store, owner, name, folder_path, stored_head):
     if not current_head or current_head == (stored_head or ""):
         return ""
     try:
-        store.incremental_save(
-            owner=owner, name=name,
-            changed_files=[], new_files=[], deleted_files=[],
-            new_symbols=[], raw_files={},
-            git_head=current_head,
-        )
+        if branch:
+            meta = next(
+                (b for b in store.list_branches(owner, name) if b.get("branch") == branch),
+                None,
+            )
+            if meta is not None:
+                base_head = meta.get("base_head") or ""
+            else:
+                base_index = store.load_index(owner, name)
+                base_head = (base_index.git_head if base_index else "") or ""
+            store.save_branch_delta(
+                owner=owner, name=name, branch=branch,
+                changed_files=[], new_files=[], deleted_files=[],
+                new_symbols=[], raw_files={},
+                git_head=current_head, base_head=base_head,
+            )
+        else:
+            store.incremental_save(
+                owner=owner, name=name,
+                changed_files=[], new_files=[], deleted_files=[],
+                new_symbols=[], raw_files={},
+                git_head=current_head,
+            )
         return current_head
     except Exception:
         logger.debug("git_head metadata refresh failed for %s/%s", owner, name, exc_info=True)
@@ -1870,6 +1895,7 @@ def index_folder(
                     _refresh_git_head_if_advanced(
                         store, owner, repo_name, folder_path,
                         existing_index.git_head if existing_index else None,
+                        branch=_fast_branch if _fast_is_branch_delta else "",
                     )
                     _fast_no_change = {
                         "success": True,
@@ -1940,7 +1966,18 @@ def index_folder(
                     _head_advanced = bool(_new_head) and _new_head != (
                         existing_index.git_head if existing_index else ""
                     )
-                    if mtime_only_updates or _head_advanced:
+                    if _fast_is_branch_delta:
+                        # Branch-delta run: the base index must not learn this
+                        # branch's HEAD. Refresh the branch's own head instead;
+                        # mtime-only drift has no file rows to ride on in a delta,
+                        # so those files are simply re-hashed on the next run.
+                        if _head_advanced:
+                            _refresh_git_head_if_advanced(
+                                store, owner, repo_name, folder_path,
+                                existing_index.git_head if existing_index else None,
+                                branch=_fast_branch,
+                            )
+                    elif mtime_only_updates or _head_advanced:
                         # Update mtimes directly via incremental_save with empty
                         # deltas; also refresh git_head when it advanced so
                         # FreshnessProbe does not keep flagging unchanged symbols
@@ -2028,7 +2065,10 @@ def index_folder(
                 # Fire daemon thread for deferred summarization — index is already saved
                 # with empty summaries; this fills them in without blocking the response.
                 _summarization_deferred = False
-                if new_symbols and use_ai_summaries:
+                # Never in branch-delta mode: the deferred thread saves through a
+                # branch-less incremental_save, i.e. into the BASE index. Branch
+                # symbols keep their inline summaries (empty until a full run).
+                if new_symbols and use_ai_summaries and not _fast_is_branch_delta:
                     _summaries_copy = list(new_symbols)
                     _contents_copy = dict(raw_files_subset)
                     _daemon = threading.Thread(
@@ -2451,6 +2491,7 @@ def index_folder(
                 _refresh_git_head_if_advanced(
                     store, owner, repo_name, folder_path,
                     existing_index.git_head if existing_index else None,
+                    branch=_current_branch if _is_branch_delta else "",
                 )
                 _no_change_result = {
                     "success": True,
@@ -2574,7 +2615,9 @@ def index_folder(
 
             # This path did a full discovery walk (paths=None), so the skip
             # counts describe the whole corpus — refresh the coverage contract.
-            if paths is None:
+            # Not in branch-delta mode: coverage lives in the BASE meta and must
+            # keep describing the base corpus, not this branch's walk.
+            if paths is None and not _is_branch_delta:
                 _record_coverage(
                     store, owner, repo_name,
                     skip_counts,
@@ -2830,6 +2873,7 @@ def index_folder(
                     context_metadata=full_context_metadata, file_mtimes=file_mtimes,
                     package_names=_pkg_names, git_root=_git_root,
                     file_cap_status=_cap_status,
+                    branch=_current_branch,
                 )
         else:
             # v1.96: when an existing v1.96-format index covers the same
@@ -2907,11 +2951,13 @@ def index_folder(
                 git_root=_git_root,
                 source_roots=_save_source_roots,
                 file_cap_status=_cap_status,
+                branch=_current_branch,
             )
 
         # Full-save paths above all followed a full discovery walk (paths=None);
         # record the coverage contract the verdicts disclose at query time.
-        if paths is None:
+        # Not in branch-delta mode (base meta describes the base corpus only).
+        if paths is None and not _is_branch_delta:
             _record_coverage(
                 store, owner, repo_name,
                 skip_counts, len(source_file_list), len(no_symbols_files),

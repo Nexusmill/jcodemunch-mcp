@@ -1329,8 +1329,13 @@ class SQLiteIndexStore:
         git_root: str = "",
         source_roots: Optional[list[str]] = None,
         file_cap_status: Optional[dict] = None,
+        branch: str = "",
     ) -> "CodeIndex":
         """Save a full index to SQLite. Replaces all existing data.
+
+        ``branch`` is the git branch this full index was built on; it is
+        persisted as meta ``base_branch`` so a later run on another branch
+        can tell it is NOT on the base and take the branch-delta path.
 
         v1.106.0: serialises against concurrent save_index calls from other
         MCP processes via the ``indexwrite`` lock. SQLite WAL alone makes
@@ -1395,6 +1400,7 @@ class SQLiteIndexStore:
             file_sizes=file_sizes,
             package_names=package_names or [],
             file_cap_status=file_cap_status or {},
+            branch=branch or "",
         )
 
         db_path = self._db_path(owner, name)
@@ -3019,6 +3025,9 @@ class SQLiteIndexStore:
             package_names=getattr(old, "package_names", []),
             file_cap_status=new_file_cap_status,
             coverage=new_coverage,
+            # Warm-cache rebuild must agree with the cold load: keep the base
+            # branch, or one base-mode incremental_save erases it in-process.
+            branch=meta.get("base_branch", "") or getattr(old, "branch", "") or "",
         )
 
     def _build_index_from_rows(
@@ -3118,6 +3127,7 @@ class SQLiteIndexStore:
             package_names=package_names,
             file_cap_status=file_cap_status,
             coverage=coverage,
+            branch=meta.get("base_branch", "") or "",
         )
 
     def _write_meta(self, conn: sqlite3.Connection, index: "CodeIndex") -> None:

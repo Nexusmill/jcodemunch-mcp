@@ -626,6 +626,7 @@ class IndexStore:
         git_root: str = "",
         source_roots: Optional[list[str]] = None,
         file_cap_status: Optional[dict] = None,
+        branch: str = "",
     ) -> "CodeIndex":
         """Save index via SQLite backend."""
         # Validate owner/name for path separators (before any slug computation)
@@ -657,6 +658,7 @@ class IndexStore:
             file_blob_shas=file_blob_shas, file_mtimes=file_mtimes,
             package_names=package_names, git_root=git_root,
             source_roots=source_roots, file_cap_status=file_cap_status,
+            branch=branch,
         )
 
         # Clean up any legacy JSON now that data is safely in SQLite.
