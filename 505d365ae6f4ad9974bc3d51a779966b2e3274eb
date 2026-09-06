@@ -1,0 +1,22 @@
+{
+ "type": "CLEAR",
+ "commit": "505d365ae6f4ad9974bc3d51a779966b2e3274eb",
+ "when": "20260906-145950",
+ "files": {
+  "src/jcodemunch_mcp/tools/index_folder.py": {
+   "sha": "9afbe4a29b7d9b415d29df69dac182e1b6c0a0af55d6b374e61ca2d89d8c232e",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260906-145217",
+   "artifact": ".adversary\\reviews\\gate_20260906-145217.md"
+  },
+  "tests/test_branch_content_walk.py": {
+   "sha": "8266d30f1b0775e283a27e0ca656a35ab572823f13ebed8b8f4d91eec6c5e4c8",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260906-145217",
+   "artifact": ".adversary\\reviews\\gate_20260906-145217.md"
+  }
+ },
+ "artifacts": {
+  ".adversary\\reviews\\gate_20260906-145217.md": "model: z-ai/glm-5.3-flash | usage: {'prompt_tokens': 40132, 'completion_tokens': 1967, 'total_tokens': 42099, 'cost': 0.00470165, 'is_byok': False, 'prompt_tokens_details': {'cached_tokens': 0, 'cache_write_tokens': 0, 'audio_tokens': 0, 'video_tokens': 0}, 'cost_details': {'upstream_inference_cost': 0.00470165, 'upstream_inference_prompt_cost': 0.0040132, 'upstream_inference_completions_cost': 0.00068845}, 'completion_tokens_details': {'reasoning_tokens': 1486, 'image_tokens': 0, 'audio_tokens': 0}} | files: ['src/jcodemunch_mcp/tools/index_folder.py', 'tests/test_branch_content_walk.py']\n\nI hunted for regressions the two fixes could introduce:\n\n1. **Pre-walk wipe removal** \u2014 verified: the walk now overwrites branch bodies in place; a mid-walk failure leaves the old delta rows with their bodies on disk, and the delta save (the only replace_all point) happens strictly after the walk completes. The test's first-file crash confirms no rows/bodies are lost. Stale-body cleanup is delegated to the store's replace_all dropped-files pass, which runs only inside `save_branch_delta` \u2014 no window where rows survive without bodies that a later incremental run would refuse to rewrite (changed files have differing hashes vs. the composed index, so they re-parse).\n\n2. **Subdir refusal** \u2014 the guard is placed after branch-delta mode is established but before any store write; the early return has no side effects (content dir creation happens later). It correctly fires even when the composed branch index fails to load (`existing_index=None`), since `replace_all` would still wipe the delta. The base index is untouched, as the test asserts.\n\n3. **Skip-write on base-hash match** \u2014 files whose hash equals the base's are written nowhere; the composed view resolves their bodies from the base content dir. A missing base body would also break the base index itself, so this is not a new failure mode.\n\n4. **Base-index-gone fallback** \u2014 if `_delta_base_index` is None, the run downgrades to a plain base save with `content_dir` = base dir; identical to the old fallback's `save_index(branch=_current_branch)` behavior.\n\n5. **`paths=`/subset + full walk on a branch** \u2014 a subset walk (walk_prefix == \"\", or `paths` list) with `replace_all=True` would drop branch rows outside the subset. However, the pre-change code was equally wrong there (it computed `delta_deleted = base_files - subset` and deleted those rows), so this is not a defect the change introduces or worsens \u2014 and `paths`+`incremental=False` is not the normal route.\n\n6. Incremental-path subdir walks on a branch have their own pre-existing accounting problem, untouched by this diff.\n\nThe rebuttal's claims (rmtree deleted, refusal added, RED/GREEN evidence) check out against the staged bytes.\n\nVERDICT: CLEAR"
+ }
+}
