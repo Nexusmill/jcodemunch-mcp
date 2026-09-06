@@ -2308,6 +2308,23 @@ def index_folder(
                     "Branch-aware indexing: current='%s', base='%s' → delta mode",
                     _current_branch, _base_branch,
                 )
+                if walk_prefix:
+                    # A delta describes the WHOLE branch against the base; a walk
+                    # covering only a subdirectory would mark every base file
+                    # outside it deleted and (replace_all) drop the branch's own
+                    # rows outside it. Refuse rather than corrupt (gate catch
+                    # 2026-09-06).
+                    return {
+                        "success": False,
+                        "error": (
+                            f"Branch-delta indexing of subdirectory '{walk_prefix}' on "
+                            f"branch '{_current_branch}' is not supported: a delta "
+                            f"describes the whole branch against base '{_base_branch}', "
+                            f"and a partial walk would drop the branch's changes outside "
+                            f"'{walk_prefix}'. Run index_folder on the git root, or index "
+                            "the base branch."
+                        ),
+                    }
 
         if existing_index is None and store.has_index(owner, repo_name):
             rebuild_reason, _rebuild_message = describe_unloadable_index(
@@ -2663,7 +2680,25 @@ def index_folder(
         symbols_by_file: dict[str, list] = defaultdict(list)
         source_file_list = sorted(file_mtimes)
         file_imports: dict[str, list[dict]] = {}
-        content_dir = store._content_dir(owner, repo_name)
+        # Branch-delta full walk (spec 2026-09-06-jcm-branch-scoped-content, 5.4):
+        # bodies of files that differ from the base go to the branch's OWN content
+        # dir; a file whose hash equals the base's is byte-identical to the base
+        # body already on disk and is written nowhere. The base is loaded ONCE,
+        # here, and reused by the delta save below; if it is gone this run is a
+        # plain base save.
+        _delta_base_index = None
+        if _is_branch_delta:
+            _delta_base_index = store.load_index(owner, repo_name)  # base (no branch)
+            if _delta_base_index is None:
+                _is_branch_delta = False
+        if _is_branch_delta:
+            # No pre-walk wipe (gate catch 2026-09-06): a failure mid-walk would
+            # leave the surviving rows without bodies, and the next incremental
+            # run - seeing matching hashes - would never rewrite them. Bodies of
+            # rows that drop out are removed by the store's replace_all pass.
+            content_dir = store._branch_content_dir(owner, repo_name, _current_branch)
+        else:
+            content_dir = store._content_dir(owner, repo_name)
         content_dir.mkdir(parents=True, exist_ok=True)
 
         no_symbols_files: list[str] = []
@@ -2680,8 +2715,13 @@ def index_folder(
             content_bytes = content.encode("utf-8")
             file_hashes[rel_path] = _file_hash_bytes(content_bytes)
 
-            # Write raw content to cache immediately, then process
-            file_dest = store._safe_content_path(content_dir, rel_path)
+            # Write raw content to cache immediately, then process. In delta
+            # mode only files that differ from the base get a (branch) body.
+            _write_body = (
+                not _is_branch_delta
+                or file_hashes[rel_path] != _delta_base_index.file_hashes.get(rel_path, "")
+            )
+            file_dest = store._safe_content_path(content_dir, rel_path) if _write_body else None
             if file_dest:
                 file_dest.parent.mkdir(parents=True, exist_ok=True)
                 store._write_cached_text(file_dest, content)
@@ -2827,54 +2867,43 @@ def index_folder(
         git_head = _get_git_head(folder_path) or ""
 
         if _is_branch_delta:
-            # Full index on a non-base branch — diff against base and save as delta.
-            base_index = store.load_index(owner, repo_name)  # base (no branch)
-            if base_index is not None:
-                base_files = set(base_index.source_files)
-                current_files_set = set(source_file_list)
+            # Full index on a non-base branch - diff against the base loaded
+            # BEFORE the walk (the object that decided which bodies were written)
+            # and save a delta that REPLACES the branch's row set: a complete walk
+            # means a file reverted since the last delta drops out (spec 5.6).
+            base_index = _delta_base_index
+            base_files = set(base_index.source_files)
+            current_files_set = set(source_file_list)
 
-                delta_new = sorted(current_files_set - base_files)
-                delta_deleted = sorted(base_files - current_files_set)
-                delta_changed = sorted(
-                    f for f in (current_files_set & base_files)
-                    if file_hashes.get(f, "") != base_index.file_hashes.get(f, "")
-                )
+            delta_new = sorted(current_files_set - base_files)
+            delta_deleted = sorted(base_files - current_files_set)
+            delta_changed = sorted(
+                f for f in (current_files_set & base_files)
+                if file_hashes.get(f, "") != base_index.file_hashes.get(f, "")
+            )
 
-                # Gather symbols for changed/new files
-                delta_files = set(delta_changed) | set(delta_new)
-                delta_symbols = [s for s in all_symbols if s.file in delta_files]
+            # Gather symbols for changed/new files
+            delta_files = set(delta_changed) | set(delta_new)
+            delta_symbols = [s for s in all_symbols if s.file in delta_files]
 
-                store.save_branch_delta(
-                    owner=owner, name=repo_name, branch=_current_branch,
-                    changed_files=delta_changed, new_files=delta_new,
-                    deleted_files=delta_deleted,
-                    new_symbols=delta_symbols,
-                    raw_files={},  # already written to content dir
-                    git_head=git_head,
-                    base_head=base_index.git_head,
-                    file_hashes={f: file_hashes[f] for f in delta_files if f in file_hashes},
-                    file_mtimes={f: file_mtimes[f] for f in delta_files if f in file_mtimes},
-                    file_languages={f: file_languages[f] for f in delta_files if f in file_languages},
-                    file_summaries={f: file_summaries[f] for f in delta_files if f in file_summaries},
-                    file_imports={f: file_imports[f] for f in delta_files if f in file_imports},
-                )
-                index = store.load_index(owner, repo_name, branch=_current_branch)
-                if index is None:
-                    index = base_index  # fallback
-            else:
-                # No base index — save as full (becomes the base)
-                index = store.save_index(
-                    owner=owner, name=repo_name,
-                    source_files=source_file_list, symbols=all_symbols,
-                    raw_files={}, languages=languages, file_hashes=file_hashes,
-                    file_summaries=file_summaries, git_head=git_head,
-                    source_root=str(folder_path), file_languages=file_languages,
-                    display_name=folder_path.name, imports=file_imports,
-                    context_metadata=full_context_metadata, file_mtimes=file_mtimes,
-                    package_names=_pkg_names, git_root=_git_root,
-                    file_cap_status=_cap_status,
-                    branch=_current_branch,
-                )
+            store.save_branch_delta(
+                owner=owner, name=repo_name, branch=_current_branch,
+                changed_files=delta_changed, new_files=delta_new,
+                deleted_files=delta_deleted,
+                new_symbols=delta_symbols,
+                raw_files={},  # already written to the BRANCH content dir above
+                git_head=git_head,
+                base_head=base_index.git_head,
+                file_hashes={f: file_hashes[f] for f in delta_files if f in file_hashes},
+                file_mtimes={f: file_mtimes[f] for f in delta_files if f in file_mtimes},
+                file_languages={f: file_languages[f] for f in delta_files if f in file_languages},
+                file_summaries={f: file_summaries[f] for f in delta_files if f in file_summaries},
+                file_imports={f: file_imports[f] for f in delta_files if f in file_imports},
+                replace_all=True,
+            )
+            index = store.load_index(owner, repo_name, branch=_current_branch)
+            if index is None:
+                index = base_index  # fallback
         else:
             # v1.96: when an existing v1.96-format index covers the same
             # git_root, carry over files outside `walk_prefix` and union
