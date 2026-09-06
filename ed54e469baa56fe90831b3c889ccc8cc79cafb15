@@ -1,0 +1,46 @@
+{
+ "type": "CLEAR",
+ "commit": "ed54e469baa56fe90831b3c889ccc8cc79cafb15",
+ "when": "20260906-111231",
+ "files": {
+  "src/jcodemunch_mcp/config.py": {
+   "sha": "4b778b48ec8e871f2b9e71740a2be415e09fdd854d4ca142eba563ad07cd0311",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260906-111209",
+   "artifact": ".adversary\\reviews\\gate_20260906-111209.md"
+  },
+  "src/jcodemunch_mcp/parser/imports.py": {
+   "sha": "e0a9595b630522a805b4ffdbe51da10fd1aca84e2ed8603adcfd8770197a4f81",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260906-111209",
+   "artifact": ".adversary\\reviews\\gate_20260906-111209.md"
+  },
+  "src/jcodemunch_mcp/tools/index_repo.py": {
+   "sha": "c8c3793c3cb96ef160708f5073219deb92dfd5ab219108f3df3a142b4fd761ba",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260906-111209",
+   "artifact": ".adversary\\reviews\\gate_20260906-111209.md"
+  },
+  "tests/test_index_repo_fetch_failures.py": {
+   "sha": "2b61bce7f043e8eabaf973fa98758a1ddcf7754e3a8e1be920b742d472ad28d7",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260906-111209",
+   "artifact": ".adversary\\reviews\\gate_20260906-111209.md"
+  },
+  "tests/test_jsonc_comment_comma_adjacency.py": {
+   "sha": "ce9bbcbd03912c2358d77b8251cb04fca782f1461817d88d3943ca5781906ccf",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260906-111209",
+   "artifact": ".adversary\\reviews\\gate_20260906-111209.md"
+  },
+  "tests/test_rust_imports_dedup.py": {
+   "sha": "3d5e0a8558360f8bdb212428d03d4b806c7e11ab4b6d1fa78ffc5640f121d998",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260906-111209",
+   "artifact": ".adversary\\reviews\\gate_20260906-111209.md"
+  }
+ },
+ "artifacts": {
+  ".adversary\\reviews\\gate_20260906-111209.md": "model: z-ai/glm-5.3-flash | usage: {'prompt_tokens': 54669, 'completion_tokens': 21232, 'total_tokens': 75901, 'cost': 0.009408175, 'is_byok': False, 'prompt_tokens_details': {'cached_tokens': 0, 'cache_write_tokens': 0, 'audio_tokens': 0, 'video_tokens': 0}, 'cost_details': {'upstream_inference_cost': 0.009408175, 'upstream_inference_prompt_cost': 0.004100175, 'upstream_inference_completions_cost': 0.005308}, 'completion_tokens_details': {'reasoning_tokens': 20211, 'image_tokens': 0, 'audio_tokens': 0}} | files: ['src/jcodemunch_mcp/config.py', 'src/jcodemunch_mcp/parser/imports.py', 'src/jcodemunch_mcp/tools/index_repo.py', 'tests/test_index_repo_fetch_failures.py', 'tests/test_jsonc_comment_comma_adjacency.py', 'tests/test_rust_imports_dedup.py']\n\n## Verification pass\n\n**1. `config._strip_jsonc` (comment/comma decoupling)**\n\nI tried to construct a valid JSONC shape that the old first-pass comma heuristics handled and the new code + unchanged second pass does not. The second pass removes whitespace (` \\t\\n\\r`) and one comma immediately before every `}` / `]`, and it is string-aware; after the first pass, comments are gone, so \"comma is trailing\" \u21d4 \"next token is `}`/`]\" is fully decided there. Walked all 11 staged test shapes by hand (including `{ \"port\": 8901,// c\\n \u2026`, `{ \"a\": 1 /* n */, \"b\": 2 }`, and the trailing-comma-before-close family) \u2014 all parse. Also re-verified the generated template round-trip (`languages` / `disabled_tools` / `meta_fields` arrays full of commented entries with in-comment commas): second pass strips those trailing commas as before. Every caller (`load_config`, `load_project_config`, `validate_config`, `_raw_jsonc_keys`, `set_config_value`/`unset_config_value`, imports.py `_load_json`) goes through the same function, so no caller sees first-pass-only output. The only behavior lost is \"repair\" of *invalid* input like `[1, /* c */, 2]` (elision), which is not valid JSONC and the old code only accidentally accepted while corrupting the valid `{ \"a\": 1 /* n */, \"b\": 2 }`. The author's claim about the removed `*/`+newline walk-back (it popped `result[-1]`, a space, not the comma at `j`) is accurate.\n\n**2. `parser._extract_rust_imports`**\n\nKey check: the emitted specifier expression is byte-identical to the old edge's specifier (`raw.split(\"{\")[0].rstrip(\":\").strip()` \u2014 the change only moved it into `spec` and widened the dedup key from crate to path-before-brace). So downstream resolvers see the same string format, just more edges; nothing that resolved before stops resolving (checked `resolve_specifier` branches: `::` specifiers still fall through to the SQL-stem fallback harmlessly, no new false edges). Aliased forms (`use a::b as c;`) now carry ` as c` in the specifier \u2014 same class of non-resolution as before, pre-existing. Brace-name extraction (`re.search(r\"\\{([^}]+)\\}\", raw)`) is unchanged, so nested-brace garbage names are pre-existing, untouched. Staged test expectations match the new behavior exactly, in source order.\n\n**3. `tools/index_repo` fetch-failure guard**\n\n- `failed_fetches` is closed over and mutated with `.add` only \u2014 no `nonlocal` needed; single event-loop thread, no await between fetch and add \u2014 no race.\n- Blob-sha path: `deleted` = `old_set \u2212 new_set` (tree-based), so a failed-fetch file (which is in the tree) can never also be in `deleted`; filtering only `changed`/`new` is sound there. Old sha is preserved because `incr_blob_shas` is keyed off `current_files` (pre-existing lines), so retry-next-run holds \u2014 the test asserts exactly this.\n- Content-hash path (`_blob_diff is None`): `changed`/`new` from `detect_changes(current_files)` are by construction keys of `current_files`, and failed fetches are excluded from `current_files`, so `_unfetched` is provably empty there \u2014 the filter is a harmless no-op, not a new behavior.\n- The `warnings` addition to the no-change early return is additive; no fixed-schema consumer identified.\n\n**Non-blocking notes (pre-existing, untouched, not worsened \u2014 recorded here so they aren't lost):**\n- In the content-hash incremental path (legacy indexes without `file_blob_shas`), a failed fetch still makes the file land in `deleted` via `detect_changes` and lose its symbols silently; the new warning cannot fire there. Identical before this change.\n- A fetch that *succeeds* with empty content (empty file on GitHub) is still not in `failed_fetches`, so the changed-file symbol deletion persists for that sub-case.\n- The full-index path still records `blob_shas` for files it never fetched, so a one-time failed fetch on a first index leaves the file permanently unindexed until it changes upstream (author notes record this as open).\n\nAll three are outside the change's scope and behave identically on HEAD and on these bytes.\n\nThe three test files are internally consistent (1 + 11 + 2 = the claimed 14-test delta over a 7783 baseline), and each pins a behavior I independently verified against the staged bytes.\n\nVERDICT: CLEAR"
+ }
+}
