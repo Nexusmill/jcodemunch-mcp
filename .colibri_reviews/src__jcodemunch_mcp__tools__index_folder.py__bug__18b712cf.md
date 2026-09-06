@@ -78,7 +78,52 @@ One real branch-mode defect, worse than the external review described: no-change
     loads a branch view (composed indexes serve only index_folder/index_file), and the
     full-walk path writes EVERY walked file into the base dir (2666-2687), not just the
     delta save. Live storage 2026-09-06: 33 indexes, 0 deltas - nothing poisoned yet.
-    Awaiting the owner's ruling (spec section 4) before implementation.
+    Ruled B by Damien 2026-09-06 (same session): tools will follow the checkout (B2, own spec).
+
+## Fixed 2026-09-06 (B1 - branch-scoped content, two gated commits, TDD)
+- **0fe7c3a (storage):** bodies for delta files live in a sibling `<slug>@<branch-slug>-<sha8>`
+  dir (`_branch_content_dir`; `_safe_repo_component` never emits `@`); `CodeIndex.delta_files`
+  is set only by `compose_branch_index`; `get_symbol_content`/`get_file_content` pick the dir by
+  MEMBERSHIP through `_content_root_for` and fail closed (None) on a missing branch body;
+  `delete_branch_delta` (now under the `indexwrite` lock) and `delete_index` remove the dirs;
+  `save_branch_delta(replace_all=True)` drops the branch's whole row set AND unlinks the bodies
+  of the rows it drops. Tests: `tests/test_branch_content_dir.py` (15, RED-first; the defect
+  itself reproduced as `'XX = 1\ndef foo('` served for a base read).
+  Gate round 1 (gate_20260906-142613) BLOCKed: HIGH "no migration for legacy deltas" REFUTED
+  (no version of this fork ever wrote a delta - unreachable before fe2afe5; live probe 33
+  indexes / 0 branch_meta rows; the reviewer accepted that zero branch_meta rows is itself
+  proof no delta body was ever written); LOW `replace_all` left stale bodies - ACCEPTED, fixed
+  (dropped-files unlink); LOW the new rmtree in `delete_branch_delta` ran outside the
+  `indexwrite` lock - ACCEPTED, fixed (lock spy test, RED proven by mutating the lock name).
+  CLEAR round 2 (gate_20260906-143349).
+- **505d365 (index_folder full walk, `incremental=False`):** the base is loaded ONCE before the
+  walk (if None the run is a plain base save; the old "no base index" fallback that would have
+  saved a body-less base is gone); in delta mode only files whose hash differs from the base's
+  get a body, written to the branch dir; the delta save passes `replace_all=True`, so a reverted
+  file's stale `modify` row (and its body) goes away. Tests: `tests/test_branch_content_walk.py`
+  (8): full walk, revert, failed walk stays readable, subdir refused, base-mode guard, plus
+  three pass-through proofs (incremental discovery, watcher fast path, index_file - unchanged
+  in code, RED-proven by routing branch bodies to the base dir at class level).
+  Gate round 1 (gate_20260906-144626) BLOCKed on TWO real MEDIUMs in my first cut, both
+  ACCEPTED: (1) the spec's pre-walk `rmtree` of the branch dir made a mid-walk failure STICKY
+  (rows survived without bodies; the next incremental run saw matching hashes and never
+  rewrote them) - wipe deleted, the store's dropped-files pass covers stale bodies; (2) a
+  subdirectory walk on a branch (`walk_prefix` non-empty) marked every base file outside the
+  prefix deleted and, with `replace_all`, dropped the branch's own rows outside it - refused
+  explicitly with an error naming prefix/branch/base. CLEAR round 2 (gate_20260906-145217).
+  Full suite on the final bytes: 7820 passed / 32 skipped / 0 failed (baseline 7797 + 23).
+- **Residuals recorded, not fixed (all pre-existing classes, all fail closed):** `delete_index`'s
+  new `@*` rmtree runs unlocked like its base-dir rmtree always has; `dead.unlink()` in the
+  branch content pass can raise PermissionError on Windows with a reader holding the body
+  (same as `_incremental_save_locked`); `paths=` with `incremental=False` on a branch
+  (`walk_prefix == ""` but a file subset) still computes `delta_deleted` over the subset and
+  now `replace_all`s - the reviewer judged it "equally wrong" before (deleted markers vs
+  dropped rows) and off the normal route; incremental-path subdir walks on a branch keep their
+  pre-existing accounting problem. The nine direct `_content_dir` readers still serve the base
+  dir (now guaranteed base bytes) - B2 (tools follow the checkout) is next, own spec.
+- Lesson (docket EV-040): the spec's "wipe first, then walk" was reviewed by me, the advisor
+  and the ruling, and was still wrong - failure ORDERING is a review unit of its own; write the
+  "what survives a crash between step N and N+1" test BEFORE choosing the order.
 - Caveat (surfaced, not fixed): bases indexed BEFORE this fix carry `base_branch == ''` until
   their next full `save_index` (a `force`/non-incremental `index_folder`); `incremental_save`
   does not stamp it, so those legacy DBs keep the old fallback until re-indexed once.
