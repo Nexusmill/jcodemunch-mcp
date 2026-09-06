@@ -1,0 +1,34 @@
+{
+ "type": "CLEAR",
+ "commit": "fe2afe58191f0e6c2f049397e832aa486e56a35a",
+ "when": "20260906-011141",
+ "files": {
+  "src/jcodemunch_mcp/storage/index_store.py": {
+   "sha": "1fda569528bd41aba1e7d72211bb3a0f87d8ef2f027b1a1002524dcd9ce76f99",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260906-011116",
+   "artifact": ".adversary\\reviews\\gate_20260906-011116.md"
+  },
+  "src/jcodemunch_mcp/storage/sqlite_store.py": {
+   "sha": "c4acaf84b2d85bcf7deb41ebbc5c82cae0ae9b1199cd3bb211c1311aa716340b",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260906-011116",
+   "artifact": ".adversary\\reviews\\gate_20260906-011116.md"
+  },
+  "src/jcodemunch_mcp/tools/index_folder.py": {
+   "sha": "cf92ac38ead6a0c436f1083774de8f161e85ce180533b9bdf5d028dbc2943527",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260906-011116",
+   "artifact": ".adversary\\reviews\\gate_20260906-011116.md"
+  },
+  "tests/test_branch_no_change_head.py": {
+   "sha": "bef6989561f47766fa89331360dbaf442ae29c928933c548200bcac2aa746985",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260906-011116",
+   "artifact": ".adversary\\reviews\\gate_20260906-011116.md"
+  }
+ },
+ "artifacts": {
+  ".adversary\\reviews\\gate_20260906-011116.md": "model: z-ai/glm-5.3-flash | usage: {'prompt_tokens': 83807, 'completion_tokens': 15733, 'total_tokens': 99540, 'cost': 0.02043755, 'is_byok': False, 'prompt_tokens_details': {'cached_tokens': 0, 'cache_write_tokens': 0, 'audio_tokens': 0, 'video_tokens': 0}, 'cost_details': {'upstream_inference_cost': 0.02043755, 'upstream_inference_prompt_cost': 0.01257105, 'upstream_inference_completions_cost': 0.0078665}, 'completion_tokens_details': {'reasoning_tokens': 14980, 'image_tokens': 0, 'audio_tokens': 0}} | files: ['src/jcodemunch_mcp/storage/index_store.py', 'src/jcodemunch_mcp/storage/sqlite_store.py', 'src/jcodemunch_mcp/tools/index_folder.py', 'tests/test_branch_no_change_head.py']\n\n## Review\n\nI traced the change end-to-end: the base-branch persistence round-trip (`save_index(branch=\u2026)` \u2192 `_write_meta` `base_branch` \u2192 `_build_index_from_rows` / `_patch_index_from_delta` reading it back), all three `_refresh_git_head_if_advanced` call sites, the fast-path mtime-only restructure, the summarizer guard, and both coverage guards.\n\n**Claims verified against the bytes:**\n- The warm-cache hole is real and correctly closed: `_patch_index_from_delta` now carries `meta[\"base_branch\"] or old.branch`, and `old` is always fetched under the `branch=\"\"` cache key, so a base-mode `incremental_save` can no longer blank the branch. The cold path reads the persisted meta row, which `_incremental_save_locked` never deletes (it only upserts `indexed_at`/`git_head`/`context_metadata`/`package_names`/`file_cap_status`/`languages`). Round-1 rebuttal is factually settled.\n- In delta mode, `existing_index` is the composed view at every helper call site, so `stored_head` is the branch view's head, matching the new docstring; the branch-mode helper preserves an existing `base_head` and derives it from the base index only when no delta row exists. Empty-delta writes (`save_branch_delta` with all-empty lists) do upsert `branch_meta` and are safe in `_save_branch_delta_locked`.\n- The summarizer guard (`not _fast_is_branch_delta`) is the only `threading.Thread` construction in `index_folder`, so the monkeypatched test exercises the real seam; the delta fast path writes only branch tables plus content files, leaving base symbol rows untouched.\n- Both coverage guards leave the first-index (\"becomes the base\") path recording coverage (`_is_branch_delta` is False there), matching the rebuttal.\n- Callers of the widened `save_index` signatures are compatible (keyword with default `\"\"`); DBs from before this change simply carry no `base_branch` and keep the old fallback semantics until their next full save \u2014 no regression path.\n\n**Residual notes (not blocking):**\n- LOW \u2014 `sqlite_store.load_index`, branch staleness check: a base-mode metadata-only head bump (the #330 helper) advances base `git_head` without content change, so every existing delta now warns \"stale\" on load until re-deltaed. Warning-only; composition is unaffected. Reachable only because this change activates delta mode.\n- LOW \u2014 detached HEAD yields commit-SHA \"branch\" names, so `branch_meta` can accumulate one row per checkout while bisecting. Cosmetic.\n- The shared-content-dir defect (round-2 finding 2) is confirmed present in these bytes (`_save_branch_delta_locked` / the delta full-walk write branch content into `_content_dir(owner, name)`; `get_symbol_content`/`get_file_content` are branch-blind), but the rebuttal's factual framing checks out: pre-change, `_base_branch = _current_branch` made delta mode unreachable and a branch run overwrote the entire base via `save_index` \u2014 strictly worse. It is recorded as an open confirmed MEDIUM with the trade-off stated; per the rebuttal-settlement rule I do not re-raise it as a blocker for these bytes.\n\nNo logic error found in the new lines; the persisted state machine (base `git_head` vs `branch_meta.base_head` vs `branch_meta.git_head`) is consistent at every write site I could construct a trigger for.\n\nVERDICT: CLEAR"
+ }
+}
