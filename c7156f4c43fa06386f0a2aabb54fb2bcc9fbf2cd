@@ -1,0 +1,34 @@
+{
+ "type": "CLEAR",
+ "commit": "c7156f4c43fa06386f0a2aabb54fb2bcc9fbf2cd",
+ "when": "20260906-104539",
+ "files": {
+  "src/jcodemunch_mcp/investigator/deletion_safety.py": {
+   "sha": "f5c282d6f0bb96ba572e27613f64f74fee83f3b552ac31cb15b1aaa43c29d178",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260906-104510",
+   "artifact": ".adversary\\reviews\\gate_20260906-104510.md"
+  },
+  "src/jcodemunch_mcp/tools/search_symbols.py": {
+   "sha": "25e23ca70a3d24e1abeacf7719d983befc250bf3af993ae2cd7578d6fecb2a1b",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260906-104510",
+   "artifact": ".adversary\\reviews\\gate_20260906-104510.md"
+  },
+  "tests/test_deletion_safety_roots.py": {
+   "sha": "00b79eb3c6762c08ce7899c661d5746ee09c1dbf9e661abd6f91755a9ebd255c",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260906-104510",
+   "artifact": ".adversary\\reviews\\gate_20260906-104510.md"
+  },
+  "tests/test_search_symbols_identity_union.py": {
+   "sha": "9d0fb31ed4be766eb9c2fafccf00633359226ca019b73de3cefc442c366c659d",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260906-104510",
+   "artifact": ".adversary\\reviews\\gate_20260906-104510.md"
+  }
+ },
+ "artifacts": {
+  ".adversary\\reviews\\gate_20260906-104510.md": "model: z-ai/glm-5.3-flash | usage: {'prompt_tokens': 36447, 'completion_tokens': 15115, 'total_tokens': 51562, 'cost': 0.006512275, 'is_byok': False, 'prompt_tokens_details': {'cached_tokens': 0, 'cache_write_tokens': 0, 'audio_tokens': 0, 'video_tokens': 0}, 'cost_details': {'upstream_inference_cost': 0.006512275, 'upstream_inference_prompt_cost': 0.002733525, 'upstream_inference_completions_cost': 0.00377875}, 'completion_tokens_details': {'reasoning_tokens': 14082, 'image_tokens': 0, 'audio_tokens': 0}} | files: ['src/jcodemunch_mcp/investigator/deletion_safety.py', 'src/jcodemunch_mcp/tools/search_symbols.py', 'tests/test_deletion_safety_roots.py', 'tests/test_search_symbols_identity_union.py']\n\n## Review\n\nI verified the change against the provided bytes, claim by claim.\n\n**1. Identity union (`search_symbols.py`, candidate narrowing).** The probes are `{query.lower(), \" \".join(query_terms)}`. Checked against `_identity_score`: every condition that awards a nonzero identity score \u2014 raw/joined exact-equals (implied by prefix), raw/joined `name.startswith`, raw/joined `in sym_id_lower` \u2014 is covered by `name_lower.startswith(probes)` / `any(p in sym_id_lower ...)`. So the new candidate set is a strict superset of the old one, and the probes deliberately exclude individual stemmed tokens, exactly mirroring `_identity_score`, which also never probes individual tokens (stemmed tokens reach scoring only via posting lists \u2014 and posting-list hits were always candidates). `fqn`-rewritten `query` is the same string passed as `raw_query` to `_bm25_score`, so probes stay consistent. The set is mutated while iterating `index.symbols` (a list), not itself \u2014 safe. Empty-probe edge (query tokenizing to nothing) falls into the untouched `else: candidates = index.symbols` branch. Filters still apply after narrowing; heap/scoring/packing logic untouched.\n\n**2. FreshnessProbe reordering.** `_probe` is constructed unconditionally on the lexical path before packing, and I traced every statement from construction to the exit: there is no early `return` between them, so no NameError path. The semantic and fusion exits construct their own probes and are untouched. Double-annotate idempotence is not directly inspectable (`freshness.py` not provided), but the pre-existing cache-hit revalidation path (v1.108.178/#404) already re-annotates rows that were annotated at fill time and treats overwrite semantics as the contract \u2014 and the staged contract test pins `tokens_used == payload // 4` exactly, plus `test_v1_108_55` pins the delivered compact payload against the budget, both claimed green on these exact bytes. The `full`-detail path still under-charges the `_freshness` stamp (packing cost is `byte_length`, not `json.dumps`) \u2014 pre-existing, not worsened.\n\n**3. `_looks_like_root` (deletion_safety.py).** The heuristic only ever moves files from the dead classification into `live` \u2014 it cannot create a dead classification. Both consumers (Obligations 2 and 3) turn a live importer into REFUTED \u2192 UNSAFE, i.e. every false positive of the heuristic errs toward *blocking* deletion, matching the module's stated invariant (\"uncertainty blocks deletion\"). Roots also skip the `find_importers` call while `ref_ob.calls += len(named_importers)` still counts them, so `_meta.index_calls` is slightly overstated \u2014 cosmetic accounting only. Constants `SAFE`/`STATIC_CLEAR` are module-level and used by `_verdict`; the action variable is always computed before the cluster override, so `recommended_next_action` is never missing.\n\n**4. `search_text` error branch.** The branch keys on the payload (`\"error\" in hits`), sets UNESTABLISHED, empties `results`, and the downstream `if/elif/else` chain (`pass` / liveness / SATISFIED) cannot reach SATISFIED on the error path \u2014 verified against the full staged file. `results` is assigned on both branches before use.\n\n**5. Tests.** The monkeypatch target works because the investigator imports `search_text` at call time inside its try block. The cluster assertion in test 1 holds because the REFUTED branch of Obligation 2 carries no `deletion_cluster` in `detail`, and `text_ob.detail` only ever carries `files`/`in_unreachable_files`. The budget test's equality is exact by construction (`tokens_used` sums the identical `json.dumps` expression over the identical packed rows).\n\n**Non-blocking observations** (not defects, recorded for the author): (a) the union pass makes every posting-hit lexical query an O(N) scan over `index.symbols` \u2014 the fuzzy pass at least caps its O(N) scan; this is the necessary price of the recall fix in the current architecture, but on very large indexes it materially raises per-query latency and contradicts the \"cheap\" framing more than the comment admits; (b) `index_calls` overcounting for skipped root files; (c) the full-detail budget path still excludes the stamp from its charge. None breaks a contract, and the author explicitly left the fusion/semantic after-packing stamping open rather than claiming it fixed.\n\nThe rebuttal's factual claims checked out against the bytes on every point I could verify statically (probes \u2287 `_identity_score`'s conditions, no early return between probe construction and use, branch on error payload not status, constants defined, cluster reported but action gated).\n\nVERDICT: CLEAR"
+ }
+}
