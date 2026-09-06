@@ -70,6 +70,15 @@ One real branch-mode defect, worse than the external review described: no-change
     with branch content (self-consistent but wrong everywhere); after it the base symbols are
     right and only the modified files' source slices can be wrong while the delta exists.
     Docketed as the next item for this file.
+    **Design 2026-09-06:** Nexusmill repo
+    `docs/superpowers/specs/2026-09-06-jcm-branch-scoped-content-design.md` (this fork
+    gitignores `docs/`; planning docs for jcm live in Nexusmill's spec tree)
+    (B1 storage design + the stale-row defect it fixes; B2 = tools follow the checkout).
+    Two facts the docket wording missed, verified against the bytes: NO retrieval tool ever
+    loads a branch view (composed indexes serve only index_folder/index_file), and the
+    full-walk path writes EVERY walked file into the base dir (2666-2687), not just the
+    delta save. Live storage 2026-09-06: 33 indexes, 0 deltas - nothing poisoned yet.
+    Awaiting the owner's ruling (spec section 4) before implementation.
 - Caveat (surfaced, not fixed): bases indexed BEFORE this fix carry `base_branch == ''` until
   their next full `save_index` (a `force`/non-incremental `index_folder`); `incremental_save`
   does not stamp it, so those legacy DBs keep the old fallback until re-indexed once.
