@@ -998,11 +998,11 @@ class SQLiteIndexStore:
 
             # Clear existing delta entries for files we're updating
             all_affected = set(changed_files) | set(new_files) | set(deleted_files)
-            if all_affected:
-                placeholders = ",".join("?" * len(all_affected))
+            for chunk in self._in_chunks(all_affected):
+                placeholders = ",".join("?" * len(chunk))
                 conn.execute(
                     f"DELETE FROM branch_deltas WHERE branch = ? AND file IN ({placeholders})",
-                    (branch, *all_affected),
+                    (branch, *chunk),
                 )
 
             # Insert delta entries
@@ -1550,21 +1550,34 @@ class SQLiteIndexStore:
             try:
                 conn = self._connect(db_path)
                 try:
-                    meta = self._read_meta(conn)
-                    if not meta:
-                        return None
-
+                    # One read transaction, so meta, symbols and files all
+                    # describe the same generation (open_selective's guarantee;
+                    # three autocommit SELECTs let a writer commit in between
+                    # and produced a torn index). `data_version` changes only
+                    # when ANOTHER connection commits: read it before and after
+                    # so a load that raced a writer is handed out but never
+                    # cached as current.
+                    data_version_before = conn.execute("PRAGMA data_version").fetchone()[0]
+                    conn.execute("BEGIN")
                     try:
-                        stored_version = int(meta.get("index_version", "0"))
-                    except (TypeError, ValueError):
-                        logger.warning("Corrupt index version for %s/%s", owner, name)
-                        return None
-                    if stored_version > cast(int, _INDEX_VERSION):
-                        logger.warning("Index version %d > current %d for %s/%s", stored_version, _INDEX_VERSION, owner, name)
-                        return None
+                        meta = self._read_meta(conn)
+                        if not meta:
+                            return None
 
-                    symbol_rows = conn.execute("SELECT * FROM symbols").fetchall()
-                    file_rows = conn.execute("SELECT * FROM files").fetchall()
+                        try:
+                            stored_version = int(meta.get("index_version", "0"))
+                        except (TypeError, ValueError):
+                            logger.warning("Corrupt index version for %s/%s", owner, name)
+                            return None
+                        if stored_version > cast(int, _INDEX_VERSION):
+                            logger.warning("Index version %d > current %d for %s/%s", stored_version, _INDEX_VERSION, owner, name)
+                            return None
+
+                        symbol_rows = conn.execute("SELECT * FROM symbols").fetchall()
+                        file_rows = conn.execute("SELECT * FROM files").fetchall()
+                    finally:
+                        conn.rollback()
+                    data_version_after = conn.execute("PRAGMA data_version").fetchone()[0]
 
                     index = self._build_index_from_rows(meta, symbol_rows, file_rows, owner, name)
 
@@ -1602,6 +1615,14 @@ class SQLiteIndexStore:
                         )
                     index = self.compose_branch_index(index, branch, delta)
 
+            if data_version_after != data_version_before:
+                # Another connection committed while we read: the snapshot is
+                # one generation, but not the current one. Hand it out stamped
+                # with the pre-read mtime and leave the cache alone (a writer
+                # in this process has already cached its own fresh index).
+                logger.debug("load_index raced a writer on %s/%s; not caching this generation", owner, name)
+                return _stamp_load_provenance(index, db_path, mtime_ns)
+
             # Populate cache (re-stat to capture any WAL checkpoint mtime change)
             try:
                 post_mtime_ns = _db_mtime_ns(db_path)
@@ -1615,6 +1636,15 @@ class SQLiteIndexStore:
     #: Chunk size for `id IN (...)`. SQLITE_MAX_VARIABLE_NUMBER is 32766 on
     #: modern builds and 999 on older ones; 900 clears the floor with headroom.
     _SELECT_CHUNK = 900
+
+    @classmethod
+    def _in_chunks(cls, items):
+        """Slice a path/id collection for `IN (...)` lists on the WRITE side too:
+        one placeholder per element hits SQLITE_MAX_VARIABLE_NUMBER on a delta
+        wider than the bound ("too many SQL variables", whole save rolled back)."""
+        seq = list(items)
+        for start in range(0, len(seq), cls._SELECT_CHUNK):
+            yield seq[start:start + cls._SELECT_CHUNK]
 
     def open_selective(
         self,
@@ -1951,25 +1981,25 @@ class SQLiteIndexStore:
 
             # Delete symbols for changed + deleted files
             files_to_remove: set[str] = set(deleted_files) | set(changed_files)
-            if files_to_remove:
-                placeholders = ",".join("?" * len(files_to_remove))
-                conn.execute(f"DELETE FROM symbols WHERE file IN ({placeholders})", tuple(files_to_remove))
+            for chunk in self._in_chunks(files_to_remove):
+                placeholders = ",".join("?" * len(chunk))
+                conn.execute(f"DELETE FROM symbols WHERE file IN ({placeholders})", tuple(chunk))
 
             # Preserve existing hash/mtime for changed files before deleting them
             preserved: dict[str, dict] = {}
-            if changed_files:
-                placeholders = ",".join("?" * len(changed_files))
+            for chunk in self._in_chunks(changed_files):
+                placeholders = ",".join("?" * len(chunk))
                 rows = conn.execute(
                     f"SELECT path, hash, mtime_ns FROM files WHERE path IN ({placeholders})",
-                    changed_files,
+                    chunk,
                 ).fetchall()
                 for r in rows:
                     preserved[r["path"]] = {"hash": r["hash"] or "", "mtime_ns": r["mtime_ns"]}
 
             # Delete file records for deleted files
-            if deleted_files:
-                placeholders = ",".join("?" * len(deleted_files))
-                conn.execute(f"DELETE FROM files WHERE path IN ({placeholders})", deleted_files)
+            for chunk in self._in_chunks(deleted_files):
+                placeholders = ",".join("?" * len(chunk))
+                conn.execute(f"DELETE FROM files WHERE path IN ({placeholders})", chunk)
 
             # Insert new symbols
             if new_symbols:

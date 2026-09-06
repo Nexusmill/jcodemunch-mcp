@@ -40,3 +40,27 @@ Not safe for concurrent multi-process use as-is: a cold `load_index` overlapping
 ## Missing safeguards
 - No shared read-transaction helper for the load paths (only `open_selective` has one).
 - No shared chunking helper for `IN` lists on the write side.
+
+## Fixed 2026-09-06 (remediation item 4, TDD, gated commit)
+- **HIGH torn cold load - FIXED.** `load_index` now runs `_read_meta` + the two `SELECT *` inside
+  one `BEGIN … ROLLBACK` read transaction (the `open_selective` shape), so the rows describe one
+  generation. The record's suggested freshness check (stat before/after, skip the cache when the
+  mtime moved) was NOT used: our own `conn.close()` can checkpoint the WAL and move the .db mtime
+  on every quiet cold load, which would have stopped the cache from ever populating. Used
+  `PRAGMA data_version` instead - it changes only when ANOTHER connection commits - read before
+  `BEGIN` and after `ROLLBACK`; when it moved, the (consistent, older) index is handed out stamped
+  with the pre-read mtime and NOT cached, so a writer's own freshly cached index (or the next cold
+  load) stays authoritative. Test: `test_a_writer_committing_mid_load_never_yields_a_torn_index`
+  (a writer commits gen2 inside the reader's `_read_meta`; RED on the old bytes with the exact
+  torn shape `('gen1', ['alpha', 'beta'])` and the torn object served from the cache on the
+  second load; GREEN now) + `test_a_quiet_cold_load_is_still_cached`.
+- **MEDIUM unchunked write-side `IN (...)` - FIXED.** New `_in_chunks()` classmethod (slices by
+  `_SELECT_CHUNK`) applied at all four sites: `_incremental_save_locked`'s symbols DELETE,
+  preserved-rows SELECT and files DELETE, and `_save_branch_delta_locked`'s branch_deltas DELETE.
+  Tests drive one delta of SQLITE_MAX_VARIABLE_NUMBER + 100 paths (probed live from the running
+  SQLite via `getlimit`, 32766 here) through each site; all three RED with `OperationalError: too
+  many SQL variables`, GREEN now.
+- Still open from this record (unchanged): PLAUSIBLE file-row metadata-from-kwargs hazard,
+  PLAUSIBLE empty-hash "new" rows, PLAUSIBLE `_initialized_dbs` first-connect race. Line numbers
+  in the findings above refer to sha 811ec1b7; the file has since moved by the item-3 and item-4
+  edits.
