@@ -127,3 +127,12 @@ One real branch-mode defect, worse than the external review described: no-change
 - Caveat (surfaced, not fixed): bases indexed BEFORE this fix carry `base_branch == ''` until
   their next full `save_index` (a `force`/non-incremental `index_folder`); `incremental_save`
   does not stamp it, so those legacy DBs keep the old fallback until re-indexed once.
+- Post-commit checks (2026-09-06, after the CLEAR): `delete_branch_delta` now takes the
+  non-reentrant `indexwrite` lock - its only callers are the `IndexStore` facade and tests
+  (`search_text` over `src/`), so no production path acquires it from inside a locked region.
+  Exposure until B2: live storage has exactly three indexes with a non-blank `base_branch`
+  (colibri-code-review = main, Nexusmill = main, jcodemunch-mcp = nexusmill-local); on those
+  repos an `index_file`/`index_folder` run from any OTHER branch (e.g. a `gate/<name>` side
+  branch) writes a delta while every tool keeps serving base bytes - consistent, stale,
+  silent. Rule: index those repos only from the base branch; a branch view needs
+  `delete_index` + re-index on that branch until B2 lands.
