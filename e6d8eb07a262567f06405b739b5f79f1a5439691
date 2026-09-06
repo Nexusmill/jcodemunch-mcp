@@ -1,0 +1,16 @@
+{
+ "type": "CLEAR",
+ "commit": "e6d8eb07a262567f06405b739b5f79f1a5439691",
+ "when": "20260905-221202",
+ "files": {
+  ".colibri_reviews/_manifest.json": {
+   "sha": "b37ff82d8007e2c6bd68c28fecb205236e1959911b6bd4cfb05d5061e2747524",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260905-220915",
+   "artifact": ".adversary\\reviews\\gate_20260905-220915.md"
+  }
+ },
+ "artifacts": {
+  ".adversary\\reviews\\gate_20260905-220915.md": "model: z-ai/glm-5.3-flash | usage: {'prompt_tokens': 10307, 'completion_tokens': 371, 'total_tokens': 10678, 'cost': 0.00116055, 'is_byok': False, 'prompt_tokens_details': {'cached_tokens': 0, 'cache_write_tokens': 0, 'audio_tokens': 0, 'video_tokens': 0}, 'cost_details': {'upstream_inference_cost': 0.00116055, 'upstream_inference_prompt_cost': 0.0010307, 'upstream_inference_completions_cost': 0.00012985}, 'completion_tokens_details': {'reasoning_tokens': 78, 'image_tokens': 0, 'audio_tokens': 0}} | files: ['.colibri_reviews/_manifest.json']\n\nReview of the staged change: it consists solely of review-artifact records (`.colibri_reviews/_manifest.json`, 19 per-file review `.md` outputs, and 19 `_external_raw` `.md` files) \u2014 no source, build, or config files are modified, so no runtime logic, callers, or state can be affected.\n\nChecks performed:\n- Manifest\u2194outputs consistency: all 19 `output` paths in the manifest match files the rebuttal shows staged verbatim (`git diff --cached --name-only`), and the naming scheme (`...__bug__<sha8>.md`) is internally consistent with each entry's `sha` prefix. I cannot recompute the 64-hex shas here, but a stale sha would at worst mis-record provenance metadata, not break behavior.\n- Rebuttal verification: the round-1 \"only the manifest is staged\" claim is factually settled \u2014 the author's 39-path listing includes every `.md` the manifest references. The absolute-path concern is a known, docketed defect in the consumer (`colibri store.py`), pre-existing and not worsened by this commit; diverging the manifest shape today would actually break the current reader, as the rebuttal argues.\n- No schema/mode contradictions in the manifest JSON; valid JSON, uniform `bug` mode rows.\n\nNo defect introduced or enabled by this changeset.\n\nVERDICT: CLEAR"
+ }
+}
