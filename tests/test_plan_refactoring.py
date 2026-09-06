@@ -1912,3 +1912,17 @@ class TestLanguageCoverage:
             )
 
 
+# ---------------------------------------------------------------------------
+# Gated finding 2026-09-05 (colibri review, MEDIUM): a repo id without an
+# owner/name separator must come back as an error dict, not an unpack crash.
+# ---------------------------------------------------------------------------
+
+class TestPlanRefactoringRepoGuard:
+    """plan_refactoring must route repo resolution through resolve_repo like every other tool."""
+
+    def test_bare_repo_name_returns_error_dict_not_unpack_crash(self, tmp_path):
+        result = plan_refactoring(
+            "no-such-repo", "foo", "rename", new_name="bar", storage_path=str(tmp_path)
+        )
+        assert isinstance(result, dict) and "error" in result, result
+        assert "no-such-repo" in result["error"]

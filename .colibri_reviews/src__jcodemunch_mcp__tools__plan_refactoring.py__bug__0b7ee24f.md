@@ -11,13 +11,15 @@
 Not shippable for TypeScript overload renames: the generated edit deletes the implementation's opening line.
 
 ## Bugs & vulnerabilities
-**[HIGH] TS overload extraction swallows the implementation line — CONFIRMED** - `line 192, 1331-1338, 1969-1974`
+> **CORRECTION 2026-09-06 (before remediation, on reading the tests): the HIGH below is WITHDRAWN — refuted by the repo's own test contract.** `tests/test_plan_refactoring.py::TestExtractTSOverloadSignatures::test_overload_signatures_multiple` (and `_with_export`, `_mixed_export_and_not`) assert that the implementation's opening line IS collected and `end_idx == 2`: "Fix D" deliberately replaces the whole overload set plus the implementation opener with the single new signature (caller comment at 1973: "For overloads, we replace all signatures with the new one"), using the same brace convention as the single-function path. The external reviewer and my Phase-3 pass both judged the extractor without its tests — my gate should have pulled them into the context pack (colibri law 2). Recorded, not re-fixed. The `repo.split` MEDIUM below stands and is remediated in the commit carrying this note.
+
+**[~~HIGH~~ WITHDRAWN] TS overload extraction swallows the implementation line — ~~CONFIRMED~~ REFUTED BY TESTS** - `line 192, 1331-1338, 1969-1974`
 - What: `_TS_OVERLOAD_PATTERN` (`^\s*(export\s+)?function\s+\w+\s*\(.*\)\s*:`) also matches an implementation line (`function f(a: any): any {` — the `):` is there), and the collection loop (1334) accepts every consecutive `function <name>(` line with no overload test. `old_def` therefore spans the signatures AND the implementation's first line; the caller replaces that whole span with ONE `function {new_signature}` line (1974).
 - Trigger: any TypeScript symbol with overload signatures directly followed by its implementation (the normal layout).
 - Impact: applying the plan removes the implementation's opener/brace — the file no longer parses.
 - Fix: an overload line must end with `;` or a type annotation and contain no `{`; stop collecting at the first line containing `{`.
 
-**[MEDIUM] `repo.split("/", 1)` without a guard — CONFIRMED (line 246, not the reported ~80)**
+**[MEDIUM] `repo.split("/", 1)` without a guard — CONFIRMED (line 246, not the reported ~80) — FIXED 2026-09-06 in the commit carrying this note:** `plan_refactoring` now resolves the repo through `._utils.resolve_repo` inside a `try/except ValueError` that returns `{"error": ...}`, the same contract every other tool uses (identifier-form, bare-name, path-shaped and ambiguous ids all become error dicts). TDD: `tests/test_plan_refactoring.py::TestPlanRefactoringRepoGuard` RED on the old bytes (`ValueError: not enough values to unpack`), GREEN after.
 - Every other tool routes through `resolve_repo`; here an identifier-form repo (`jcodemunch-mcp`) or a path raises `ValueError` out of the tool instead of returning `{"error": ...}`.
 
 **[LOW] `_ensure_unique_context_smart` can return a non-unique block — CONFIRMED** - `line 1285-1309`

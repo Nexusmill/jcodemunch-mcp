@@ -15,6 +15,7 @@ from .get_blast_radius import (
     _name_in_content,
 )
 from ._call_graph import _symbol_body
+from ._utils import resolve_repo
 from ..storage import record_savings
 
 logger = logging.getLogger(__name__)
@@ -242,8 +243,11 @@ def plan_refactoring(
     storage_path: Optional[str] = None,
 ) -> dict:
     """Generate an edit-ready refactoring plan."""
+    try:
+        owner, name = resolve_repo(repo, storage_path)
+    except ValueError as e:
+        return {"error": str(e)}
     store = IndexStore(storage_path)
-    owner, name = repo.split("/", 1)
     index = store.load_index(owner, name)
     if index is None:
         return {"error": f"No index found for {repo}"}
