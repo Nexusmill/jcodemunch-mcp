@@ -4,10 +4,12 @@ Replaces monolithic JSON files with per-repo SQLite databases.
 WAL mode enables concurrent readers + single writer with delta writes.
 """
 
+import hashlib
 import json
 import logging
 import os
 import platform
+import re
 import shutil
 import sqlite3
 import threading
@@ -35,6 +37,17 @@ logger = logging.getLogger(__name__)
 # migration and re-warns — once per indexed repo enumerated, which spams hard
 # under `watch-all`. Warn once per (owner, name) instead.
 _MIGRATION_SCHEMA_WARNED: set = set()
+
+
+def _branch_slug(branch: str) -> str:
+    """Filesystem-safe, collision-free directory component for a branch name.
+
+    `feature/x` and `feature-x` must not share a directory, so a short hash of
+    the raw name is appended to the sanitised prefix.
+    """
+    safe = re.sub(r"[^A-Za-z0-9._-]", "-", branch)[:40].strip("-")
+    digest = hashlib.sha1(branch.encode("utf-8")).hexdigest()[:8]
+    return f"{safe}-{digest}" if safe else digest
 
 # SQL to create tables and indexes
 _SCHEMA_SQL = """\
@@ -933,6 +946,7 @@ class SQLiteIndexStore:
         file_languages: Optional[dict[str, str]] = None,
         file_summaries: Optional[dict[str, str]] = None,
         file_imports: Optional[dict[str, list[dict]]] = None,
+        replace_all: bool = False,
     ) -> None:
         """Save a branch delta layer — records only what changed relative to the base index.
 
@@ -965,6 +979,7 @@ class SQLiteIndexStore:
                 owner, name, branch, changed_files, new_files, deleted_files,
                 new_symbols, raw_files, git_head, base_head, file_hashes,
                 file_mtimes, file_languages, file_summaries, file_imports,
+                replace_all,
             )
 
     def _save_branch_delta_locked(
@@ -984,6 +999,7 @@ class SQLiteIndexStore:
         file_languages: Optional[dict[str, str]] = None,
         file_summaries: Optional[dict[str, str]] = None,
         file_imports: Optional[dict[str, list[dict]]] = None,
+        replace_all: bool = False,
     ) -> None:
         """Inner body of save_branch_delta; runs under the indexwrite lock."""
         db_path = self._db_path(owner, name)
@@ -996,14 +1012,30 @@ class SQLiteIndexStore:
         try:
             conn.execute("BEGIN")
 
-            # Clear existing delta entries for files we're updating
+            # Clear existing delta entries for files we're updating - or, for a
+            # complete walk (replace_all), the branch's whole row set: a file
+            # reverted since the last delta must drop out, not linger as a stale
+            # "modify" row (spec 2026-09-06-jcm-branch-scoped-content, 5.6).
             all_affected = set(changed_files) | set(new_files) | set(deleted_files)
-            for chunk in self._in_chunks(all_affected):
-                placeholders = ",".join("?" * len(chunk))
-                conn.execute(
-                    f"DELETE FROM branch_deltas WHERE branch = ? AND file IN ({placeholders})",
-                    (branch, *chunk),
-                )
+            dropped_files: set[str] = set()
+            if replace_all:
+                # Rows about to be purged that this save does not re-add: their
+                # branch bodies go too (gate catch 2026-09-06), so a later
+                # re-entry whose body write is skipped or fails reads None
+                # rather than the stale body at new offsets.
+                dropped_files = {
+                    r[0] for r in conn.execute(
+                        "SELECT file FROM branch_deltas WHERE branch = ?", (branch,)
+                    )
+                } - all_affected
+                conn.execute("DELETE FROM branch_deltas WHERE branch = ?", (branch,))
+            else:
+                for chunk in self._in_chunks(all_affected):
+                    placeholders = ",".join("?" * len(chunk))
+                    conn.execute(
+                        f"DELETE FROM branch_deltas WHERE branch = ? AND file IN ({placeholders})",
+                        (branch, *chunk),
+                    )
 
             # Insert delta entries
             rows = []
@@ -1044,9 +1076,16 @@ class SQLiteIndexStore:
         finally:
             conn.close()
 
-        # Write raw content files for branch delta
-        content_dir = self._content_dir(owner, name)
-        content_dir.mkdir(parents=True, exist_ok=True)
+        # Branch bodies live in the branch's OWN content dir - never the base's
+        # (spec 2026-09-06-jcm-branch-scoped-content, 5.4). Readers route by
+        # CodeIndex.delta_files, so a body missing here fails closed to None.
+        content_dir = self._branch_content_dir(owner, name, branch)
+        for file_path in set(deleted_files) | dropped_files:
+            dead = self._safe_content_path(content_dir, file_path)
+            if dead and dead.exists():
+                dead.unlink()
+        if raw_files:
+            content_dir.mkdir(parents=True, exist_ok=True)
         for file_path, content in raw_files.items():
             file_dest = self._safe_content_path(content_dir, file_path)
             if not file_dest:
@@ -1151,20 +1190,44 @@ class SQLiteIndexStore:
             conn.close()
 
     def delete_branch_delta(self, owner: str, name: str, branch: str) -> bool:
-        """Delete a branch delta. Returns True if anything was deleted."""
+        """Delete a branch delta. Returns True if anything was deleted.
+
+        Runs under the ``indexwrite`` lock (gate catch 2026-09-06): the branch
+        content dir is removed here, and that must not race a concurrent
+        save_branch_delta that has just committed rows and is writing bodies.
+        """
         db_path = self._db_path(owner, name)
         if not db_path.exists():
             return False
 
-        conn = self._connect(db_path)
-        try:
-            conn.execute("BEGIN")
-            r1 = conn.execute("DELETE FROM branch_deltas WHERE branch = ?", (branch,))
-            r2 = conn.execute("DELETE FROM branch_meta WHERE branch = ?", (branch,))
-            conn.commit()
-            deleted = (r1.rowcount or 0) + (r2.rowcount or 0) > 0
-        finally:
-            conn.close()
+        from . import process_locks
+        lock_target = f"{owner}/{name}"
+        storage_root = str(self.base_path)
+        with process_locks.held(
+            "indexwrite", lock_target, storage_root, wait_seconds=60.0
+        ) as got_lock:
+            if not got_lock:
+                detail = process_locks.current_holder_diagnostic(
+                    "indexwrite", lock_target, storage_root,
+                )
+                raise RuntimeError(
+                    f"Could not acquire index-write lock for {lock_target} "
+                    f"after 60s{detail}"
+                )
+            conn = self._connect(db_path)
+            try:
+                conn.execute("BEGIN")
+                r1 = conn.execute("DELETE FROM branch_deltas WHERE branch = ?", (branch,))
+                r2 = conn.execute("DELETE FROM branch_meta WHERE branch = ?", (branch,))
+                conn.commit()
+                deleted = (r1.rowcount or 0) + (r2.rowcount or 0) > 0
+            finally:
+                conn.close()
+
+            branch_dir = self._branch_content_dir(owner, name, branch)
+            if branch_dir.exists():
+                shutil.rmtree(branch_dir)
+                deleted = True
 
         if deleted:
             safe_name = self._safe_repo_component(name, "name")
@@ -1280,6 +1343,7 @@ class SQLiteIndexStore:
             file_sizes=composed_sizes,
             package_names=getattr(base_index, "package_names", []),
             branch=branch,
+            delta_files=frozenset(modified_files | added_files),
             file_cap_status=getattr(base_index, "file_cap_status", {}) or {},
             coverage=getattr(base_index, "coverage", {}) or {},
         )
@@ -2584,6 +2648,11 @@ class SQLiteIndexStore:
             shutil.rmtree(content_dir)
             deleted = True
 
+        for branch_dir in self.base_path.glob(f"{self._repo_slug(owner, name)}@*"):
+            if branch_dir.is_dir():
+                shutil.rmtree(branch_dir)
+                deleted = True
+
         return deleted
 
     def cleanup_orphan_indexes(self) -> int:
@@ -2674,6 +2743,19 @@ class SQLiteIndexStore:
                 logger.debug("Pack path repair failed for %s", repo_id, exc_info=True)
         return healed
 
+    def _content_root_for(
+        self, owner: str, name: str, file_path: str, _index: Optional["CodeIndex"],
+    ) -> Path:
+        """Which content dir holds `file_path`'s body for the view `_index` describes.
+
+        Decided by delta MEMBERSHIP, never by file existence: a delta file whose
+        branch body is missing must read as None, not as base bytes at branch
+        offsets (spec 2026-09-06-jcm-branch-scoped-content, 5.3).
+        """
+        if _index is not None and _index.branch and file_path in getattr(_index, "delta_files", ()):
+            return self._branch_content_dir(owner, name, _index.branch)
+        return self._content_dir(owner, name)
+
     def get_symbol_content(
         self, owner: str, name: str, symbol_id: str,
         _index: Optional["CodeIndex"] = None,
@@ -2688,7 +2770,9 @@ class SQLiteIndexStore:
             if sym_dict is None:
                 return None
 
-        file_path = self._safe_content_path(self._content_dir(owner, name), sym_dict["file"])
+        file_path = self._safe_content_path(
+            self._content_root_for(owner, name, sym_dict["file"], _index), sym_dict["file"],
+        )
         if not file_path or not file_path.exists():
             return None
 
@@ -2710,7 +2794,9 @@ class SQLiteIndexStore:
             if not self.has_file(owner, name, file_path):
                 return None
 
-        content_path = self._safe_content_path(self._content_dir(owner, name), file_path)
+        content_path = self._safe_content_path(
+            self._content_root_for(owner, name, file_path, _index), file_path,
+        )
         if not content_path or not content_path.exists():
             return None
 
@@ -2721,6 +2807,15 @@ class SQLiteIndexStore:
     def _content_dir(self, owner: str, name: str) -> Path:
         """Path to raw content directory."""
         return self.base_path / self._repo_slug(owner, name)
+
+    def _branch_content_dir(self, owner: str, name: str, branch: str) -> Path:
+        """Raw content directory for one branch's delta bodies.
+
+        A SIBLING of the base content dir: `_safe_repo_component` never emits
+        '@', so no repo slug can collide with this name, no repo file path can
+        reach it, and `list_repos` (which globs *.db) never sees it.
+        """
+        return self.base_path / f"{self._repo_slug(owner, name)}@{_branch_slug(branch)}"
 
     def _safe_content_path(self, content_dir: Path, relative_path: str) -> Optional[Path]:
         """Resolve a content path and ensure it stays within content_dir."""

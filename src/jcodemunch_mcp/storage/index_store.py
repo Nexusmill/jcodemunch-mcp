@@ -206,6 +206,7 @@ class CodeIndex:
     psr4_map: dict[str, str] = field(default_factory=dict)  # PHP PSR-4 namespace map from composer.json; auto-loaded from source_root
     package_names: list[str] = field(default_factory=list)    # Package names published by this repo (from manifest files)
     branch: str = ""                 # Git branch name at index time (empty = base/default branch or non-git)
+    delta_files: frozenset = field(default_factory=frozenset)  # files whose bodies live in the branch content dir; set ONLY by compose_branch_index, empty on a base index
     file_cap_status: dict = field(default_factory=dict)  # v1.108.126: {truncated, files_discovered, files_indexed, files_skipped_cap, max_folder_files} when the max_folder_files walk cap dropped files; {"truncated": False} otherwise. Empty = pre-v1.108.126 index (unknown).
     parser_generation: int = 0  # v1.108.244: extraction-semantics generation this index's symbols were produced by. ⚠ Defaults to 0 (= unknown/legacy) deliberately: a construction site that forgets to carry it costs one re-parse, while defaulting to the current generation would silently certify symbols nobody re-parsed.
     coverage: dict = field(default_factory=dict)  # v1.108.145: coverage contract for absence claims — {files_discovered, files_indexed, skip_counts{reason:count}, no_symbols_count, walk, recorded_at} from the last full discovery walk. Empty = unknown (pre-upgrade index or no full walk recorded).
@@ -525,6 +526,10 @@ class IndexStore:
     def _content_dir(self, owner: str, name: str) -> Path:
         """Path to raw content directory."""
         return self.base_path / self._repo_slug(owner, name)
+
+    def _branch_content_dir(self, owner: str, name: str, branch: str) -> Path:
+        """Branch delta content directory (see SQLiteIndexStore._branch_content_dir)."""
+        return self._sqlite._branch_content_dir(owner, name, branch)
 
     def _safe_content_path(self, content_dir: Path, relative_path: str) -> Optional[Path]:
         """Resolve a content path and ensure it stays within content_dir.
