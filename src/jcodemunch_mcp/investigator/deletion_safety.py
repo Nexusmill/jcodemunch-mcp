@@ -114,6 +114,13 @@ def _split_importers_by_liveness(
         return [], list(files)
 
     for f in files:
+        if _looks_like_root(f):
+            # Scripts, bin/ entries, tests and __main__ modules have zero
+            # importers BY CONSTRUCTION and still run: they are roots, and a
+            # root is reachable. (An `if __name__ == "__main__"` guard in an
+            # arbitrary file is not detected here - path shape only.)
+            live.append(f)
+            continue
         try:
             res = find_importers(repo, f, storage_path=storage_path)
             if "error" in res:
@@ -126,6 +133,20 @@ def _split_importers_by_liveness(
         except Exception:  # pragma: no cover - defensive
             live.append(f)
     return dead, live
+
+
+_ROOT_DIRS = frozenset({"scripts", "script", "bin", "tests", "test"})
+_ROOT_FILES = frozenset({"__main__.py"})
+
+
+def _looks_like_root(path: str) -> bool:
+    """Path-shape heuristic for files that run without being imported."""
+    parts = [p for p in (path or "").replace("\\", "/").split("/") if p]
+    if not parts:
+        return False
+    if parts[-1] in _ROOT_FILES:
+        return True
+    return any(p in _ROOT_DIRS for p in parts[:-1])
 
 
 def _verdict(obligations: list[Obligation]) -> str:
@@ -343,13 +364,22 @@ def investigate_deletion_safety(
 
             hits = search_text(repo, target_name, storage_path=storage_path)
             text_ob.calls = 1
-            results = hits.get("results") or []
+            if "error" in hits:
+                # Mirror Obligation 2: a failed sweep is UNESTABLISHED, never
+                # "appears only in its own file" - the module's own invariant.
+                text_ob.status = UNESTABLISHED
+                text_ob.evidence.append(f"search_text failed: {hits['error']}")
+                results = []
+            else:
+                results = hits.get("results") or []
             other_files = [
                 r.get("file")
                 for r in results
                 if r.get("file") and r.get("file") != target_file
             ]
-            if other_files:
+            if "error" in hits:
+                pass  # left UNESTABLISHED above (Obligation's default status too)
+            elif other_files:
                 # Same liveness qualifier as the import obligation: a mention
                 # inside an unreachable file is not a use. Without this the two
                 # obligations disagree about the same dead cluster, and the
@@ -495,8 +525,11 @@ def investigate_deletion_safety(
     }
     if cluster:
         result["deletion_cluster"] = cluster
-        result["recommended_next_action"] = (
-            "Removable only as a group. These importers are themselves "
-            f"unreachable and must go with it: {', '.join(cluster)}"
-        )
+        # The cluster changes WHAT to delete only when deletion is on the
+        # table; under UNSAFE / NOT_ESTABLISHED the do-not-delete action stays.
+        if verdict in (SAFE, STATIC_CLEAR):
+            result["recommended_next_action"] = (
+                "Removable only as a group. These importers are themselves "
+                f"unreachable and must go with it: {', '.join(cluster)}"
+            )
     return result

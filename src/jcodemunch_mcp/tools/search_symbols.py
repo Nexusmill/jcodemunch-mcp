@@ -969,6 +969,21 @@ def search_symbols(
         if posting:
             candidate_indices.update(posting)
     if candidate_indices:
+        # Identity union: `_identity_score` (prefix / qualified-id segment) is
+        # evaluated inside `_bm25_score`, so a symbol the posting lists exclude
+        # is never scored at all - query `foo` scored `foo_helper` and silently
+        # never saw `Foobar` (token foobar), the top identity tier. One cheap
+        # pass over names/ids restores those candidates before scoring.
+        # The probes are exactly `_identity_score`'s: the raw query and the
+        # joined token string (never individual stemmed tokens).
+        probes = tuple(p for p in {query.lower(), " ".join(query_terms)} if p)
+        for i, sym in enumerate(index.symbols):
+            if i in candidate_indices:
+                continue
+            name_lower = (sym.get("name") or "").lower()
+            sym_id_lower = (sym.get("id") or "").lower()
+            if name_lower.startswith(probes) or any(p in sym_id_lower for p in probes):
+                candidate_indices.add(i)
         candidates = [index.symbols[i] for i in sorted(candidate_indices)]
     else:
         candidates = index.symbols
@@ -1051,6 +1066,20 @@ def search_symbols(
     if detail_level == "full":
         for entry in scored_results:
             _materialize_full_entry(entry, index, store, owner, name)
+
+    # Stamp `_freshness` BEFORE packing so the packer charges the delivered row
+    # (jcm#328's "what the row actually adds"): stamped after packing, every
+    # row was under-charged by its annotation and a corpus with enough
+    # candidates delivered more bytes than token_budget allowed. Fuzzy rows
+    # appended below are stamped by the second annotate() at the exit.
+    from ..retrieval.freshness import FreshnessProbe as _FreshnessProbe
+    _probe = _FreshnessProbe(
+        source_root=getattr(index, "source_root", "") or None,
+        indexed_at=getattr(index, "indexed_at", ""),
+        index_sha=getattr(index, "git_head", None),
+        file_mtimes=getattr(index, "file_mtimes", None),
+    )
+    _probe.annotate(scored_results)
 
     budget_truncated = False
     if token_budget is not None:
@@ -1189,14 +1218,9 @@ def search_symbols(
     from ..retrieval.confidence import attach_confidence as _attach_confidence
     from ..retrieval.confidence import BM25_CEILING as _BM25_CEILING
     from ..retrieval.confidence import extract_ledger_features as _ledger_feats
-    from ..retrieval.freshness import FreshnessProbe as _FreshnessProbe
     from ..storage.token_tracker import record_ranking_event as _record_ranking_event
-    _probe = _FreshnessProbe(
-        source_root=getattr(index, "source_root", "") or None,
-        indexed_at=getattr(index, "indexed_at", ""),
-        index_sha=getattr(index, "git_head", None),
-        file_mtimes=getattr(index, "file_mtimes", None),
-    )
+    # `_probe` was built before packing (packed rows already carry `_freshness`);
+    # this second pass stamps the fuzzy rows appended after packing.
     _probe.annotate(scored_results)
     meta["freshness"] = _probe.summary(scored_results)
     # Phase 2: runtime confidence — zero-cost no-op when no traces ingested.

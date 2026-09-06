@@ -26,3 +26,30 @@ The lexical path can silently drop the best identity matches for common queries;
 
 **[LOW] Fuzzy rows echo the signature-fallback summary — CONFIRMED** - `line 1125 vs 1023`
 - Use `_row_summary(sym)` on the fuzzy path too (jcm#328 regression on one path).
+
+## Fixed 2026-09-06 (remediation item 6, TDD, gated commit)
+- **HIGH inverted-index narrowing drops identity matches - FIXED.** After the posting-list
+  union (and only when it is non-empty, so the no-posting full-scan fallback is untouched) one
+  pass over `index.symbols` adds every symbol whose lowercased name starts with, or whose lowercased id contains,
+  either probe `_identity_score` itself uses (the raw query, the joined token string; never
+  individual stemmed tokens - my first cut used those and would have over-widened) so
+  `_bm25_score` can score them. Test:
+  `tests/test_search_symbols_identity_union.py` - query `foo` over `foo_helper` / `Foobar` /
+  `foobaz_loader` / `unrelated`: RED on the old bytes (`['foo_helper']` only), GREEN now; the
+  `foobar`-exact ranking test passed before too (pin). Cost: one string pass per query when
+  narrowing engages; the BM25 scoring pass, not this, is the expensive part.
+- **Surfaced by the union and fixed in the same commit - packer under-charged every row.**
+  With more candidates the full suite's `test_v1_108_55::test_compact_payload_tracks_budget`
+  went red (929B delivered vs 800B budget, 6 rows): `_packing_cost_bytes` measured the row
+  BEFORE the FreshnessProbe stamped `_freshness` on every packed row (retrieval/freshness.py
+  `annotate`, at the exit), so the packer admitted one row too many whenever the corpus offered
+  enough candidates - the old 5-candidate corpus hid it. First cut (reserve the widest bucket
+  in the cost) broke the sibling contract `tokens_used <= payload // 4` (over-charge) and was
+  reverted; the root fix is ordering: the lexical exit now builds the probe and stamps the heap
+  rows BEFORE packing, so the packer charges the delivered row and `tokens_used == payload //
+  4`; the exit's second `annotate()` stamps the fuzzy rows appended after packing. Test:
+  `test_packed_rows_are_charged_with_their_freshness_stamp` (10-name corpus, budget 200).
+  Open: the fusion and semantic exits still stamp after packing (same defect class, not
+  exercised by this item - recorded here, LOW); `_runtime_confidence` is stamped post-packing
+  on all exits when runtime traces exist.
+- The MEDIUM (fuzzy pass appends after budget packing) and the two LOWs are still open.

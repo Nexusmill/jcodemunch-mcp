@@ -21,3 +21,23 @@ Two confirmed ways a deletion verdict can be wrong in the unsafe direction; this
 
 **[MEDIUM] Text-sweep error payload collapses into SATISFIED — CONFIRMED (downgraded from HIGH: narrow trigger)** - `line 344-346 vs 273`
 - Obligation 3 never checks `hits` for `"error"`; `hits.get("results") or []` turns an error dict into "appears only in its own file". `search_text` does return `{"error": ...}` (search_text.py 31-42, 101) but every such path is input validation or repo resolution, which cannot fail here for an already-resolved repo and a symbol-name query — the realistic trigger is the index vanishing between the two calls. The invariant the module states (UNESTABLISHED never collapses into SATISFIED) is still violated by construction. Mirror Obligation 2's guard.
+
+## Fixed 2026-09-06 (remediation item 6, TDD, gated commit)
+- **HIGH zero-importer files classed dead - FIXED (path heuristic).** New `_looks_like_root`
+  (any path segment in `scripts/script/bin/tests/test`, or a `__main__.py` basename) short-
+  circuits `_split_importers_by_liveness` to LIVE without a `find_importers` call. The record's
+  `if __name__ == "__main__"` guard detection was NOT implemented (needs file content; path
+  shape only) - surfaced, not hidden: a root-level `migrate.py` without a root directory is
+  still classed dead. Test: a symbol imported only by `scripts/migrate.js` - RED on the old
+  bytes (`static_clear` with a "deletion cluster"), UNSAFE now with the script named.
+- **MEDIUM cluster override clobbers the do-not-delete action - FIXED.** `deletion_cluster` is
+  still reported, but `recommended_next_action` is replaced only when the verdict is SAFE or
+  STATIC_CLEAR. Test: `formatThing` imported only by a dead file AND mentioned in a live one -
+  RED ("Removable only as a group" under `verdict: unsafe`), "Do not delete" now.
+- **MEDIUM text-sweep error collapses into SATISFIED - FIXED.** Obligation 3 mirrors
+  Obligation 2: an `error` payload from `search_text` leaves `no_textual_use` UNESTABLISHED with
+  the error as evidence. Test: `search_text` monkeypatched to `{"error": ...}` - RED
+  (`satisfied`, "appears only in its own file"), UNESTABLISHED now. My first cut of this guard
+  branched on `text_ob.status == UNESTABLISHED`, which is also the Obligation DEFAULT, so the
+  normal path never reached SATISFIED - caught by the existing `TestHonesty` battery (3 red),
+  fixed by branching on the error itself.
