@@ -616,34 +616,19 @@ def _strip_jsonc(text: str) -> str:
             result.append(ch)
             i += 1
         elif ch == '/' and i + 1 < n and text[i + 1] == '/':
-            # Line comment — strip trailing comma and spaces from previous content
-            if result and result[-1] == ',':
-                result.pop()
-                while result and result[-1] in (' ', '\t'):
-                    result.pop()
+            # Line comment — drop it. Commas are NOT touched here: a comma is
+            # only "trailing" if the next token is `}` / `]`, which the second
+            # pass decides; popping one that sat right before `//` corrupted
+            # `"port": 8901,// c\n "host": ...` and the whole config reverted
+            # to DEFAULTS.
             end = text.find('\n', i)
             i = n if end == -1 else end
         elif ch == '/' and i + 1 < n and text[i + 1] == '*':
-            # Block comment — skip to */
+            # Block comment — skip to */ (same rule: commas around it are the
+            # second pass's business; skipping the one after `*/` broke
+            # `"a": 1 /* n */, "b": 2`).
             end = text.find('*/', i + 2)
-            if end == -1:
-                i = n
-            else:
-                end_i = end + 2
-                if end_i < n and text[end_i] == ',':
-                    # Comma immediately after */ — strip it
-                    i = end_i + 1
-                elif end_i < n and text[end_i] == '\n':
-                    # Newline after */ — strip trailing comma only
-                    # Walk back to find the last non-whitespace character
-                    j = len(result) - 1
-                    while j >= 0 and result[j] in (' ', '\t'):
-                        j -= 1
-                    if j >= 0 and result[j] == ',':
-                        result.pop()  # pop comma only
-                    i = end_i
-                else:
-                    i = end_i
+            i = n if end == -1 else end + 2
         else:
             result.append(ch)
             i += 1

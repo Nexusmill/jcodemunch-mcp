@@ -315,16 +315,19 @@ def _extract_rust_imports(content: str) -> list[dict]:
     seen: set[str] = set()
     for m in _RUST_USE.finditer(content):
         raw = m.group(1).strip()
-        # Simplify: use the first path segment as specifier
-        base = raw.split("::")[0].strip()
-        if base not in seen:
-            seen.add(base)
+        # The specifier is the path up to any brace group. De-duplicate on
+        # THAT, not on the crate: keyed on the first `::` segment, `use std::fs;
+        # use std::io;` recorded only std::fs and dropped every later use from
+        # the same crate.
+        spec = raw.split("{")[0].rstrip(":").strip()
+        if spec not in seen:
+            seen.add(spec)
             # Extract names from braces if present
             names = []
             brace_m = re.search(r"\{([^}]+)\}", raw)
             if brace_m:
                 names = _clean_names(brace_m.group(1))
-            edges.append({"specifier": raw.split("{")[0].rstrip(":").strip(), "names": names})
+            edges.append({"specifier": spec, "names": names})
     return edges
 
 

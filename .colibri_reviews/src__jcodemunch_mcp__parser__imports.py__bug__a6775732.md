@@ -15,3 +15,10 @@ One confirmed data-loss defect in the Rust import extractor.
 - What: `seen` is keyed on the first `::` segment (319-321), so `use std::fs; use std::io;` records only `std::fs`; every later `use` from the same crate is dropped. The specifier recorded is the full path of the first one, not the "first path segment" the comment (318) claims.
 - Impact: the Rust import graph is incomplete for essentially every real file — `find_importers`, blast radius and centrality all under-count.
 - Fix: compute `spec = raw.split("{")[0].rstrip(":").strip()` once, dedup on `spec`, append under `spec`.
+
+## Fixed 2026-09-06 (remediation item 7, TDD, gated commit)
+- **MEDIUM one `use` per crate - FIXED** exactly as the record's fix line says: `spec` is
+  computed once (path up to any brace group), de-duplication keys on it, the edge is appended
+  under it. Test: `tests/test_rust_imports_dedup.py` - six distinct `use` paths across `std`,
+  `crate`, `serde` (with one exact duplicate) yield six edges in order, brace names stay with
+  their own edge; RED on the old bytes (three edges, `KeyError: 'std::io'`), GREEN now.

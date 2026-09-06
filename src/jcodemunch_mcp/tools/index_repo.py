@@ -491,6 +491,7 @@ async def index_repo(
         semaphore = asyncio.Semaphore(10)  # Limit concurrent requests
         _fetch_total = len(files_to_fetch)
         _fetch_done = 0
+        failed_fetches: set[str] = set()
 
         async def fetch_with_limit(path: str) -> tuple[str, str]:
             nonlocal _fetch_done
@@ -499,6 +500,7 @@ async def index_repo(
                     content = await fetch_file_content(owner, repo, path, github_token)
                     return path, content
                 except Exception:
+                    failed_fetches.add(path)
                     return path, ""
                 finally:
                     _fetch_done += 1
@@ -539,6 +541,23 @@ async def index_repo(
                     len(changed), len(new), len(deleted),
                 )
 
+            # A changed file whose fetch failed has no content to parse, and
+            # passing it in `changed_files` makes incremental_save DELETE its
+            # symbols and insert nothing. Leave it as previously indexed (its
+            # old blob sha is kept below, so the next run retries) and say so.
+            _unfetched = sorted(p for p in (*changed, *new) if p in failed_fetches)
+            if _unfetched:
+                changed = [p for p in changed if p not in failed_fetches]
+                new = [p for p in new if p not in failed_fetches]
+                warnings.append(
+                    f"{len(_unfetched)} file(s) could not be fetched and were left as "
+                    f"previously indexed (retried next run): {', '.join(_unfetched[:10])}"
+                )
+                logger.warning(
+                    "index_repo incremental — %d fetch failure(s) left unindexed: %s",
+                    len(_unfetched), _unfetched[:10],
+                )
+
             if not changed and not new and not deleted:
                 logger.info("index_repo incremental — no changes detected, skipping save")
                 _incr_no_change = {
@@ -548,6 +567,8 @@ async def index_repo(
                     "changed": 0, "new": 0, "deleted": 0,
                     "duration_seconds": round(time.monotonic() - t0, 2),
                 }
+                if warnings:
+                    _incr_no_change["warnings"] = warnings
                 _stamp_incremental_outcome(
                     _incr_no_change, _requested_incremental, True
                 )

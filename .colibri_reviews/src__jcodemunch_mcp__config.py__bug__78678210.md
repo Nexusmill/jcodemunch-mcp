@@ -46,3 +46,14 @@ Shippable with one real trap: two valid JSONC comment shapes make the whole conf
 ## Missing safeguards
 - No round-trip test corpus for `_strip_jsonc` covering comment/comma adjacency.
 - No atomic-write helper for the project config.
+
+## Fixed 2026-09-06 (remediation item 7, TDD, gated commit)
+- **MEDIUM `_strip_jsonc` comma heuristics - FIXED.** All three first-pass comma heuristics are
+  gone (the `//` pop, the `*/,` skip, and the `*/\n` walk-back - which, probed, popped the
+  trailing SPACE rather than the comma it found, so it was a no-op by accident); comments are
+  simply removed and the second pass alone decides trailing commas before `}` / `]`. Test:
+  `tests/test_jsonc_comment_comma_adjacency.py` - eleven adjacency shapes round-trip through
+  `json.loads`; the two recorded shapes were RED (`Expecting ',' delimiter`), GREEN now, the
+  nine already-working shapes pinned; `tests/test_config.py` + `test_config_set.py` unchanged
+  and green.
+- The other MEDIUM (project `trusted_folders` absolute entries) and the LOWs are still open.

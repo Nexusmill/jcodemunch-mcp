@@ -18,3 +18,16 @@ One confirmed silent gap: a changed file whose GitHub fetch fails loses its symb
 
 ## Note on the raw review
 - The external review's Finding 2 was cut off by the reviewer's output limit; the visible fragment describes the incremental consequence above and is folded into it.
+
+## Fixed 2026-09-06 (remediation item 7, TDD, gated commit)
+- **MEDIUM silent fetch-failure symbol deletion - FIXED** as the record's fix line says:
+  `fetch_with_limit` records failed paths; on the incremental path they are removed from
+  `changed` / `new` before `incremental_save` (their symbols stay, their old blob sha is kept
+  so the next run retries) and a warning names them; a run where every change failed to fetch
+  returns "No changes detected" WITH that warning. Test:
+  `tests/test_index_repo_fetch_failures.py` - two changed files, one fetch raises: the other
+  file updates, the failed file's symbols survive, `changed == 1`, the warning names the file,
+  blob shas are old/new respectively; RED on the old bytes (`foo` deleted), GREEN now.
+- Open (surfaced, not fixed): the FULL (non-incremental) path has the same shape one level
+  up - a file whose fetch fails is simply absent from `current_files` and `save_index` drops it
+  from the index without a warning. Out of this finding's scope; recorded here.
