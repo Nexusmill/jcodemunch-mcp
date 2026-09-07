@@ -1,0 +1,70 @@
+{
+ "type": "CLEAR",
+ "commit": "b3482b08b45f20822ee4b6ebe9e20ee18d3db126",
+ "when": "20260907-122734",
+ "files": {
+  "src/jcodemunch_mcp/storage/index_store.py": {
+   "sha": "b6f4dcb3fb7a93d2fb8ad8b8a250406f6bf7cf61edd379e2d7a412160b4fabe8",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-122654",
+   "artifact": ".adversary\\reviews\\gate_20260907-122654.md"
+  },
+  "src/jcodemunch_mcp/storage/sqlite_store.py": {
+   "sha": "0888e6675d05997468bda354ebc9ac87e802b8d49e8c6b3a78f300ebd43645d8",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-122654",
+   "artifact": ".adversary\\reviews\\gate_20260907-122654.md"
+  },
+  "src/jcodemunch_mcp/tools/check_references.py": {
+   "sha": "c50ef03d32f8723a7e503eb69a0b55cfce99f82b2f44214e3e9aa140d40b56fa",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-122654",
+   "artifact": ".adversary\\reviews\\gate_20260907-122654.md"
+  },
+  "src/jcodemunch_mcp/tools/get_context_bundle.py": {
+   "sha": "b0d8f0b34929db6f88192d67ec7cd5f57e705723ac4925c950566aa13c5701ea",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-122654",
+   "artifact": ".adversary\\reviews\\gate_20260907-122654.md"
+  },
+  "src/jcodemunch_mcp/tools/get_file_outline.py": {
+   "sha": "87a2c78d25f68ae3e48be61d0f257454682806e5d8b0a2387679ae846caa7b72",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-122654",
+   "artifact": ".adversary\\reviews\\gate_20260907-122654.md"
+  },
+  "src/jcodemunch_mcp/tools/get_file_tree.py": {
+   "sha": "47d6054dc4dfa1de45c8cf9fa845edb1c0c50eddefd57cb34d4e01dcbd64a78b",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-122654",
+   "artifact": ".adversary\\reviews\\gate_20260907-122654.md"
+  },
+  "src/jcodemunch_mcp/tools/get_repo_outline.py": {
+   "sha": "ef3b797ef7d54ccac092ac5ae052773e4d26f332a6b7fedd43faacf76c31660e",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-122654",
+   "artifact": ".adversary\\reviews\\gate_20260907-122654.md"
+  },
+  "src/jcodemunch_mcp/tools/get_symbol.py": {
+   "sha": "47e337c0d998e2673264a7906f00353b1f4c2dd660b14743a891cdb1d26f1f2a",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-122654",
+   "artifact": ".adversary\\reviews\\gate_20260907-122654.md"
+  },
+  "src/jcodemunch_mcp/tools/search_text.py": {
+   "sha": "40c8d5ab6a22135dbc0cf5ad2b30b71df6566e9e53d2e41bd37d9d4bfb79f5d7",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-122654",
+   "artifact": ".adversary\\reviews\\gate_20260907-122654.md"
+  },
+  "tests/test_content_path.py": {
+   "sha": "c46218d15460ac75fdd2203207973983359f44364488766b92c5cd40d09d8243",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-122654",
+   "artifact": ".adversary\\reviews\\gate_20260907-122654.md"
+  }
+ },
+ "artifacts": {
+  ".adversary\\reviews\\gate_20260907-122654.md": "model: z-ai/glm-5.3-flash | usage: {'prompt_tokens': 73814, 'completion_tokens': 12124, 'total_tokens': 85938, 'cost': 0.00856705, 'is_byok': False, 'prompt_tokens_details': {'cached_tokens': 0, 'cache_write_tokens': 0, 'audio_tokens': 0, 'video_tokens': 0}, 'cost_details': {'upstream_inference_cost': 0.00856705, 'upstream_inference_prompt_cost': 0.00553605, 'upstream_inference_completions_cost': 0.003031}, 'completion_tokens_details': {'reasoning_tokens': 11390, 'image_tokens': 0, 'audio_tokens': 0}} | files: ['src/jcodemunch_mcp/storage/index_store.py', 'src/jcodemunch_mcp/storage/sqlite_store.py', 'src/jcodemunch_mcp/tools/check_references.py', 'src/jcodemunch_mcp/tools/get_context_bundle.py', 'src/jcodemunch_mcp/tools/get_file_outline.py', 'src/jcodemunch_mcp/tools/get_file_tree.py', 'src/jcodemunch_mcp/tools/get_repo_outline.py', 'src/jcodemunch_mcp/tools/get_symbol.py', 'src/jcodemunch_mcp/tools/search_text.py', 'tests/test_content_path.py']\n\n## Review\n\nI traced every migrated call site against the staged bytes and the new resolver's semantics, hunting for behavior drift the migration could introduce.\n\n**Resolver semantics vs. old call sites:**\n\n- `content_path` routes by `index.branch` **AND** `delta_files` membership. I specifically checked the trap where a *base* index carries a truthy `branch` (loaded via `meta[\"base_branch\"]` in `_build_index_from_rows`, or patched in `_patch_index_from_delta`): both paths leave `delta_files` at the empty default frozenset, so `_content_root_for` always falls to the base dir. No base-view file can be misrouted to a branch dir.\n- For non-branch views (the only kind the seven staged tools can currently load \u2014 all call `load_index(owner, name)` without a branch, and `open_selective` refuses branch), `content_path` reduces to `_safe_content_path(base_dir, file_path)`, which is what `check_references`/`search_text` did before and strictly hardens the direct-join sites (`getsize(dir / f)`) against traversal and absolute-path escapes. The old joins' only loss \u2014 unresolved vs. resolved paths \u2014 is inert for `exists()`/`getsize`/`open` (Python \u22653.6 non-strict `resolve`).\n- Fail-closed behavior for delta members with missing branch bodies is consistent at every caller: `check_references` checks `exists()` before reading; `search_text` gets `OSError` \u2192 counted in `files_unreadable` (partial-scan verdict, correct); token-savings sites catch `OSError`; `get_symbol` context block is triple-guarded.\n\n**EV-044 rebuttal verified:** the round-2 finding is genuinely fixed in the staged `get_symbol.py`. All three dereference sites of the now-`Optional` `file_full_path` are guarded: the context block (`file_full_path is not None and file_full_path.exists()`), the f-string message (interpolation only, no call \u2014 \"at None\" is honest and pinned by test), and the token-savings `getsize` (`if file_full_path is not None:`). I re-scanned the full staged file for any remaining unguarded dereference: none.\n\n**Structural guard test:** verified all seven staged tool files no longer contain `._content_dir(` (each now calls `store.content_path`); `index_folder.py` (the allowed writer) is not among the staged files, and the author's 10/10 run covers the glob over unstaged tool files.\n\n**Tests:** the traversal-symbol test correctly exercises the `open_selective` view path (pre-existing `_index.branch` exposure via `get_symbol_content` predates this diff); the missing-body test pins the `content_cache_missing` label. Both match the implemented control flow exactly.\n\n**Cross-checks:** facade/delegate signatures and positional order match; `owner`/`name` provenance is unchanged from the old call sites (same values fed to the same slug math); `_resolved_content_dirs` is instance-scoped; per-repo slug, `commonpath` cross-drive `ValueError` \u2192 `None`, and symlink-escape handling are all either identical or hardened. No caller of the untouched private APIs changed behavior.\n\nI could not construct a trigger under which the change reads wrong bytes, crashes where the old code didn't, or reports a branch-view body from the base dir.\n\nVERDICT: CLEAR"
+ }
+}
