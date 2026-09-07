@@ -1,0 +1,28 @@
+{
+ "type": "CLEAR",
+ "commit": "fcb97cc73100c456a9caab513ed0d34774596434",
+ "when": "20260906-223905",
+ "files": {
+  ".githooks/.gitattributes": {
+   "sha": "59bbdf10e9543338af010cfab368e9871403fb1718af441fba00844546184791",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260906-223830",
+   "artifact": ".adversary\\reviews\\gate_20260906-223830.md"
+  },
+  ".githooks/adversary_audit.py": {
+   "sha": "fb3078fbab0fdd82898817da4f3dcd4f6f75410a2816bfdc756a9bdd2199486c",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260906-223830",
+   "artifact": ".adversary\\reviews\\gate_20260906-223830.md"
+  },
+  ".githooks/adversary_rules_epoch": {
+   "sha": "beda1b4ca3344902d16b6d4376aae837c8635fd19a92a0c5e156f0e9000d389f",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260906-223830",
+   "artifact": ".adversary\\reviews\\gate_20260906-223830.md"
+  }
+ },
+ "artifacts": {
+  ".adversary\\reviews\\gate_20260906-223830.md": "model: z-ai/glm-5.3-flash | usage: {'prompt_tokens': 7236, 'completion_tokens': 16345, 'total_tokens': 23581, 'cost': 0.00462895, 'is_byok': False, 'prompt_tokens_details': {'cached_tokens': 0, 'cache_write_tokens': 0, 'audio_tokens': 0, 'video_tokens': 0}, 'cost_details': {'upstream_inference_cost': 0.00462895, 'upstream_inference_prompt_cost': 0.0005427, 'upstream_inference_completions_cost': 0.00408625}, 'completion_tokens_details': {'reasoning_tokens': 15667, 'image_tokens': 0, 'audio_tokens': 0}} | files: ['.githooks/.gitattributes', '.githooks/adversary_audit.py', '.githooks/adversary_rules_epoch']\n\n## Analysis\n\nI attacked this from every angle the threat model advertises, since the whole point of the epoch anchor is anti-grandfathering:\n\n**1. The anchor's polarity is correct.** `_epoch_uncached` requires the recorded sha to be an ancestor of *every* commit that ever added the epoch file. Since the original add X is always discoverable (non-merge `A` entries with `--full-history`; an adds-empty-but-file-in-HEAD state falls to `unreadable`, fail closed), any \"ok\" sha satisfies sha \u2264 X, so the grandfathered set `{rev : rev ancestor-or-equal of sha}` is confined to pre-vendoring commits \u2014 the intended trust class. Moving the sha *up* (the actual attack: rewrite to a descendant to grandfather unnotarized hook-file commits) fails the `--is-ancestor` check against X \u2192 `moved` \u2192 loud violation in every future run. Moving the sha *down* only *shrinks* the grandfathered set (stricter), so no silent loosening exists. I tried to find a merge/`--diff-filter` gap (merge-commit conflict-introduction of the file is not reported by `git log` without `-m`), but that path lands in `adds` empty \u2192 `cat-file` HEAD check \u2192 `unreadable` \u2192 fail closed, or relaxes only constraints already implied by X. Unlisted *re*-adds never loosen the binding constraint (sha \u2264 X).\n\n**2. Working-tree epoch read.** `_epoch` reads the on-disk file, not HEAD \u2014 same trust class as `adversary_baseline` (documented), and any tampering either fails the anchor (loud) or is in the stricter direction. Not a new silent hole.\n\n**3. `_is_code` threading.** All five call sites in `_changed_code` (A/C/M/T, both R uses, D) consistently receive `hn`; the default `hook_names=True` fails closed for any other caller. Rename/removal asymmetry under `hn=False` matches the documented gate semantics.\n\n**4. Fail-closed paths are loud, not silent.** `moved`/`unreadable` produce both a standing pseudo-violation (exit 1) *and* full strict-rule auditing \u2014 no masking of per-commit results. The shallow-clone hard-fail (CI depth=1 clones will permanently exit 1 once the epoch file is committed) is explicitly designed (round 3 note) and loud; it's intended behavior, not a defect. Minor cosmetic nit: the `unreadable` violation message says \"git log failed\" even when the trigger was the shallow check \u2014 misleading text only.\n\n**5. Unverifiable process claims.** Whether `46b0931e\u2026` is genuinely this repo's HEAD at vendoring time, and whether the gate (`adversary_gate.py`, not in the provided bytes) truly mirrors HOOK_NAMES, cannot be proven here \u2014 but both have loud failure modes if wrong (permanent `moved` violation; unnotarized-commit violations), not silent ones.\n\nI found no defect the change introduces or enables: no logic error, no broken call site, no silent bypass, no fail-open path.\n\nVERDICT: CLEAR"
+ }
+}
