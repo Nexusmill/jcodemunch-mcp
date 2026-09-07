@@ -91,11 +91,18 @@ def _epoch(repo):
 
 
 def _epoch_uncached(repo):
-    p = os.path.join(repo, RULES_EPOCH_FILE)
-    if not os.path.isfile(p):
-        return None, "none"
+    # The epoch is read from HEAD's TREE only - never from the working tree (Tools E gate round 1,
+    # gate_20260906-223831): a working-tree read is case-folded on Windows/macOS and follows
+    # symlinks, while the history anchor is exact, so a tracked case-variant or a symlinked
+    # .githooks could satisfy the read without being the anchored blob. An uncommitted epoch
+    # (the moment between the installer's write and the vendor commit) is 'uncommitted': the
+    # rule applies to every commit until it is committed (fail closed, not a violation).
+    rel = RULES_EPOCH_FILE.replace("\\", "/")
+    rc, blob = _git(repo, ["show", "HEAD:" + rel], check=False)
+    if rc != 0:
+        return None, "uncommitted"
     sha = None
-    for ln in open(p, encoding="utf-8", errors="replace").read().splitlines():
+    for ln in blob.splitlines():
         parts = ln.split()
         if len(parts) == 2 and parts[0] == "hook-names":
             sha = parts[1]
@@ -118,9 +125,7 @@ def _epoch_uncached(repo):
         return sha, "unreadable"
     adds = out.split()
     if not adds:
-        # a file that IS in HEAD's tree with no add commit can only be truncation
-        rc_t, _ = _git(repo, ["cat-file", "-e", "HEAD:" + RULES_EPOCH_FILE.replace("\\", "/")], check=False)
-        return sha, ("unreadable" if rc_t == 0 else "ok")      # ok = not committed yet
+        return sha, "unreadable"      # in HEAD's tree (read above) yet no add commit = truncation
     for add in adds:
         rc2, _ = _git(repo, ["merge-base", "--is-ancestor", sha, add], check=False)
         if rc2 != 0:
@@ -260,8 +265,11 @@ def main(argv=None):
                            "detail": ("rules epoch MOVED: recorded sha %s is not an ancestor of every "
                                       "commit that added the epoch file; every commit is audited under "
                                       "the current rules" % (ep_sha or "?")[:12]) if ep_state == "moved"
-                           else "rules epoch history UNREADABLE (git log failed); every commit is "
-                                "audited under the current rules"})
+                           else "rules epoch history UNREADABLE (shallow clone, or the history read "
+                                "failed); every commit is audited under the current rules"})
+    if ep_state == "uncommitted" and not a.as_json:
+        print("adversary_audit: rules epoch not committed (no .githooks/adversary_rules_epoch in "
+              "HEAD's tree) - the hook-name rule applies to every commit until it is")
     for rev in revs:
         kind, detail = _audit_commit(root, rev, a.ref)
         if kind == "skip":
