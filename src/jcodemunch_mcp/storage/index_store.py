@@ -531,6 +531,12 @@ class IndexStore:
         """Branch delta content directory (see SQLiteIndexStore._branch_content_dir)."""
         return self._sqlite._branch_content_dir(owner, name, branch)
 
+    def content_path(
+        self, owner: str, name: str, file_path: str, index: Optional["CodeIndex"],
+    ) -> Optional[Path]:
+        """Safe-resolved body path for `file_path` in the view `index` describes (B2)."""
+        return self._sqlite.content_path(owner, name, file_path, index)
+
     def _safe_content_path(self, content_dir: Path, relative_path: str) -> Optional[Path]:
         """Resolve a content path and ensure it stays within content_dir.
 

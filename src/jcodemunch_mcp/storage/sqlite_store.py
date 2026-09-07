@@ -2756,6 +2756,21 @@ class SQLiteIndexStore:
             return self._branch_content_dir(owner, name, _index.branch)
         return self._content_dir(owner, name)
 
+    def content_path(
+        self, owner: str, name: str, file_path: str, index: Optional["CodeIndex"],
+    ) -> Optional[Path]:
+        """The safe-resolved body path of `file_path` for the view `index` describes.
+
+        The ONE resolver retrieval tools use (B2, spec 2026-09-06-jcm-branch-following
+        item 3): branch dir only when `index.branch` is set and `file_path` is a
+        delta member, otherwise the base dir. Existence is not checked; a delta
+        member whose branch body is missing resolves to the missing branch path
+        (fail closed), never to the base body. None only on path traversal.
+        """
+        return self._safe_content_path(
+            self._content_root_for(owner, name, file_path, index), file_path,
+        )
+
     def get_symbol_content(
         self, owner: str, name: str, symbol_id: str,
         _index: Optional["CodeIndex"] = None,

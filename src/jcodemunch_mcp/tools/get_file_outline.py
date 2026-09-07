@@ -42,8 +42,9 @@ def _get_file_outline_single(
     # Token savings: raw file size vs outline response size
     raw_bytes = 0
     try:
-        raw_file = store._content_dir(owner, name) / file_path
-        raw_bytes = os.path.getsize(raw_file)
+        raw_file = store.content_path(owner, name, file_path, index)
+        if raw_file is not None:
+            raw_bytes = os.path.getsize(raw_file)
     except OSError:
         pass
 

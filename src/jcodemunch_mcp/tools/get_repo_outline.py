@@ -76,10 +76,11 @@ def get_repo_outline(
 
     # Token savings: sum of all raw file sizes (user would need to read all files)
     raw_bytes = 0
-    content_dir = store._content_dir(owner, name)
     for f in index.source_files:
         try:
-            raw_bytes += os.path.getsize(content_dir / f)
+            _p = store.content_path(owner, name, f, index)
+            if _p is not None:
+                raw_bytes += os.path.getsize(_p)
         except OSError:
             pass
     # Most-imported files: count in-degree from import graph (PageRank-lite)

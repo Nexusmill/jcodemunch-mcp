@@ -497,12 +497,11 @@ def get_symbol_source(
             continue
 
         source = store.get_symbol_content(owner, name, sid, _index=index)
-        content_dir = store._content_dir(owner, name)
-        file_full_path = content_dir / symbol["file"]
+        file_full_path = store.content_path(owner, name, symbol["file"], index)
 
         context_before = ""
         context_after = ""
-        if context_lines > 0 and source and file_full_path.exists():
+        if context_lines > 0 and source and file_full_path is not None and file_full_path.exists():
             try:
                 all_lines = file_full_path.read_text(encoding="utf-8", errors="replace").split("\n")
                 s_line = symbol["line"] - 1  # 0-indexed
@@ -586,7 +585,7 @@ def get_symbol_source(
             if source is None and "source_status" not in entry:
                 entry["source_status"] = "content_cache_missing"
                 entry["source_unavailable_reason"] = (
-                    f"No cached content for {symbol['file']} under {content_dir}. "
+                    f"No cached content for {symbol['file']} at {file_full_path}. "
                     "Re-index the repo to rebuild it."
                 )
                 unavailable_source_ids.append(symbol["id"])
@@ -629,7 +628,8 @@ def get_symbol_source(
         if f not in seen_files:
             seen_files.add(f)
             try:
-                raw_bytes += os.path.getsize(file_full_path)
+                if file_full_path is not None:
+                    raw_bytes += os.path.getsize(file_full_path)
             except OSError:
                 pass
         response_bytes += symbol.get("byte_length", 0)

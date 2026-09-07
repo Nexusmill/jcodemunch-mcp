@@ -354,7 +354,9 @@ def get_context_bundle(
         if sym["file"] not in seen_files_for_savings:
             seen_files_for_savings.add(sym["file"])
             try:
-                raw_bytes_total += os.path.getsize(store._content_dir(owner, name) / sym["file"])
+                _p = store.content_path(owner, name, sym["file"], index)
+                if _p is not None:
+                    raw_bytes_total += os.path.getsize(_p)
             except OSError:
                 pass
         response_bytes_total += sym.get("byte_length", 0)

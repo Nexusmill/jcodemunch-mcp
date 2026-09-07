@@ -120,7 +120,6 @@ def search_text(
     from ..retrieval import subject_state as _subject
     _state_before = _subject.capture(index)
 
-    content_dir = store._content_dir(owner, name)
     results = []
     result_count = 0
     files_searched = 0
@@ -142,7 +141,7 @@ def search_text(
         # #377 hardening item 7: an eligible file the scan could not read is a
         # gap in the scan, not a file that contained no match. Counted so a
         # zero-result response cannot present a partial sweep as exhaustive.
-        full_path = store._safe_content_path(content_dir, file_path)
+        full_path = store.content_path(owner, name, file_path, index)
         if not full_path:
             files_unreadable += 1
             continue

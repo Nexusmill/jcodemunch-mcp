@@ -100,13 +100,12 @@ def _check_single(
     content_references = []
 
     if search_content:
-        content_dir = store._content_dir(owner, name)
         for file_path in index.source_files:
             if file_path in unspanned_files:
                 continue
             spans = defining_spans.get(file_path, ())
 
-            full_path = store._safe_content_path(content_dir, file_path)
+            full_path = store.content_path(owner, name, file_path, index)
             if not full_path or not full_path.exists():
                 continue
 

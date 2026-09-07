@@ -69,11 +69,12 @@ def get_file_tree(
 
     # Token savings: sum of raw file sizes vs compact tree response
     store2 = IndexStore(base_path=storage_path)
-    content_dir = store2._content_dir(owner, name)
     raw_bytes = 0
     for f in files:
         try:
-            raw_bytes += os.path.getsize(content_dir / f)
+            _p = store2.content_path(owner, name, f, index)
+            if _p is not None:
+                raw_bytes += os.path.getsize(_p)
         except OSError:
             pass
     response_bytes = len(str(tree).encode())
