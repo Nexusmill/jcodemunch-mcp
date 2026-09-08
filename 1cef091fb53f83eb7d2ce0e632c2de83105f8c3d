@@ -1,0 +1,16 @@
+{
+ "type": "CLEAR",
+ "commit": "1cef091fb53f83eb7d2ce0e632c2de83105f8c3d",
+ "when": "20260907-232955",
+ "files": {
+  ".claude-plugin/plugin.json": {
+   "sha": "0816ee6f836b4c82322637317a78fdc9df2f72ab83ebf55df8c2df5534d1d1a1",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-232926",
+   "artifact": ".adversary\\reviews\\gate_20260907-232926.md"
+  }
+ },
+ "artifacts": {
+  ".adversary\\reviews\\gate_20260907-232926.md": "model: z-ai/glm-5.3-flash | usage: {'prompt_tokens': 1005, 'completion_tokens': 420, 'total_tokens': 1425, 'cost': 0.0002475, 'is_byok': False, 'prompt_tokens_details': {'cached_tokens': 0, 'cache_write_tokens': 0, 'audio_tokens': 0, 'video_tokens': 0}, 'cost_details': {'upstream_inference_cost': 0.0002475, 'upstream_inference_prompt_cost': 0.0001005, 'upstream_inference_completions_cost': 0.000147}, 'completion_tokens_details': {'reasoning_tokens': 143, 'image_tokens': 0, 'audio_tokens': 0}} | scrubbed: 0 | files: ['.claude-plugin/plugin.json']\n\nRound-2 rebuttal verification: the author's claim is internally consistent and addresses both prior blocks \u2014 they demonstrated that `--no-sync` (round-1 fix) silently resolved to a stale PyPI tool on PATH (a real, worse failure they reproduced with banner evidence), and that plain `uv run` in a venv-less copy self-syncs and answers from the copy's own version (1.108.276 == pyproject), with a fast second launch. The version-mismatch probe (answering version vs. copy's pyproject) is the right invariant to assert, and the Access-denied incident is correctly attributed to syncing a live checkout with in-use executables \u2014 a documented hazard, not a defect of this manifest.\n\nRemaining candidate concerns, checked and dismissed:\n- `${CLAUDE_PLUGIN_ROOT}` substitution in `args` is supported by Claude Code plugin manifests; usage here is standard.\n- First-launch sync latency (~4 s warm cache) is a one-time cost; no evidence it exceeds MCP startup limits, and it's bounded.\n- Requires `uv` on PATH instead of `uvx` \u2014 same distribution prerequisite as before, not a regression.\n\nNo new logic, callers, or state paths are affected beyond the launcher command, which was empirically validated against the exact trigger raised in round 1.\n\nVERDICT: CLEAR"
+ }
+}
