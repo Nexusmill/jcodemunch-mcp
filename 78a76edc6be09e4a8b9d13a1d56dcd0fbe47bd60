@@ -1,0 +1,436 @@
+{
+ "type": "CLEAR",
+ "commit": "78a76edc6be09e4a8b9d13a1d56dcd0fbe47bd60",
+ "when": "20260907-193120",
+ "files": {
+  "src/jcodemunch_mcp/storage/index_store.py": {
+   "sha": "9ee53cf2659f0fa3486705cefeb6bfae7835f3168d78f4361b1b4184a3814b2b",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/_call_graph.py": {
+   "sha": "376d543d1a20eaed3fb7937ac84e5ca20e23b6bf3201bb4f8cf5e91999de78c0",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/_utils.py": {
+   "sha": "fb34162060d29df5eec9f8f97331f7878520eccdb04c9a6e4d3d9e794be2a3af",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/assemble_task_context.py": {
+   "sha": "e4f8524841809a536c0104c6a3338a17b0d1fdaf8194981aee6e5b056f51b164",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/audit_agent_config.py": {
+   "sha": "b54a6bdb153ba80d79a09b5665cd6a57049ad1f09f5c940a924ac27e2877e079",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/check_delete_safe.py": {
+   "sha": "07a329411abd966a5485cf39c6fc8aed335a9620dcd5208db9318a92e018ca12",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/check_edit_safe.py": {
+   "sha": "8ca3a4b66c2725d88e816da3e9726661d1a6a00cdc3a1c8ee2ca6430f3942746",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/check_references.py": {
+   "sha": "6c56e28ac6faa3a29e038ea35e75ac24357fa47853e276f8b2bed673c176255f",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/check_rename_safe.py": {
+   "sha": "4a9b9b83a18252b6859719f4cba8c271f5c28b5378ec039025ee4ec978bf2bdf",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/digest.py": {
+   "sha": "0dc967537b78d636d0982be4c6edf8260525fcf582764f91ba9cd747e9f83d85",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/find_dead_code.py": {
+   "sha": "34261a22c364f8fb02ac727cf6983c7bc982e8824bef621a18fcec80c087576e",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/find_implementations.py": {
+   "sha": "0f3279748bfbcc449555641a759d4c3f6e58b7b2e45a90399c32bab84f6e98bc",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/find_importers.py": {
+   "sha": "62375d4db2daf5da51af77ec3c629bc39d8b7bef089d1e42fc5119a410328f96",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/find_references.py": {
+   "sha": "e51dab01191df168acc9c6855eb7b6a4874187924e43a00522948b5c24439367",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/find_similar_symbols.py": {
+   "sha": "32932c2ed9bd735b833aa60d9c728b12801674896f5d9c1d4a070dafd1bd11a6",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/flow_edges.py": {
+   "sha": "0a53eaed6ff4eba3982c54464fe7ea87448784b356a6f90a1a15294d6bec4322",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/get_architecture_metrics.py": {
+   "sha": "6f06191a67c5a70363f5724bc7af64983501f53902104dbab36c67e54ef3c060",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/get_blast_radius.py": {
+   "sha": "d42ac112cbf23950af1da56dd3b643491ad75ad0bdca1b6a8e2a78234f7b3264",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/get_call_hierarchy.py": {
+   "sha": "faa1632351d06bed9c19a1b34b23531d9346e1611c24c6a65c629e1c5c4f933c",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/get_changed_symbols.py": {
+   "sha": "fa98ac8600efb26a11bf375dc61e9f2f09f914f0b0f8a23a25cf6698469813f9",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/get_churn_rate.py": {
+   "sha": "aa864a4ccb58c366af4489d67a6a0d8bc9bf05de47dc8e93d12eef7bd9d321ab",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/get_class_hierarchy.py": {
+   "sha": "dd4c03ee2c409dcc11dd53a3165d2fcb75307410fce66e4aa814d40e5da57d5d",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/get_context_bundle.py": {
+   "sha": "e17f7b531dbaea36982d68102fb28dc99eba9ea8108768d7a7d604e77893abdf",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/get_coupling_metrics.py": {
+   "sha": "c6aa7af8e1229ef17fae7d9f814ff704fec6bb76065f92f7a32b31fa534827c5",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/get_cross_repo_map.py": {
+   "sha": "05dc013da40cc7454d11b6b596b116184a02694caf7c2f5ae11b28a14bb67ab5",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/get_dead_code_v2.py": {
+   "sha": "da02bd8cd4a8618f9470bb795b9086ed3694cd4f987d5a4f4a1b81832e260647",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/get_decorator_census.py": {
+   "sha": "14f62af84d217ac4f5b4588e5e0c2d3778e1a7b3a1d7b286a6ffec43f1ef0614",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/get_delivery_metrics.py": {
+   "sha": "317e14cc88afe0fbac480888fa791627c3294a19fdfc8b9032579b0678f3ec7f",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/get_dependency_cycles.py": {
+   "sha": "b43f75fa983da5ebdc69c3791ae580c63cd5fbcc23801cb5b0c36f4fcde53a1e",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/get_dependency_graph.py": {
+   "sha": "80448c8afd4b0eb43756eba76f0f2a69380cc47d04a45b8f5407be861ea0c9f1",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/get_endpoint_impact.py": {
+   "sha": "87ffa67ddf975f445c70524dbbdb2a4a4e33f6890210d612ce53c942cd83d71a",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/get_extraction_candidates.py": {
+   "sha": "bc8486a0a1b2f566e991477531ac9ca22efd718a6362b399457cd1cdcc259bc2",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/get_file_content.py": {
+   "sha": "11070ca2411ccb224272cb016d3f41658457f825b3fb73b22924343cb59cb250",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/get_file_risk.py": {
+   "sha": "ece81df15e78066966a12c91012280480a9d753b5632b730538701da79560e95",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/get_group_contracts.py": {
+   "sha": "7b0cf07cc43f56fe9e27020ae0145180b6b258276ef7de1b05e424dbb868c42a",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/get_hotspots.py": {
+   "sha": "dec8f01c37e0e52d37c820f1c476de2e4dae7127075a0c0060c9e5daf1fbab99",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/get_impact_preview.py": {
+   "sha": "fe38b1a95d3056a423f3857769d740b4a41f47d6b264b95e8a25e356adf8b49c",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/get_layer_violations.py": {
+   "sha": "78142211c9f56233c747ad777faa46be32b48e74a5cd6d4c24d05dbe89a31e10",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/get_parity_map.py": {
+   "sha": "1936604ea5ad3407d6dc1e002abbac0a684d2f97cb9107486db1286cdb17a7b8",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/get_pr_risk_profile.py": {
+   "sha": "a23bef69bdcd3bfcbfcba21c545d113afa7af5b23fbe2b60f2e0334ef026b5f7",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/get_project_intel.py": {
+   "sha": "f41ba4acc5db600819b8fc708691e82646a2491e81acda07fca12918ba034988",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/get_ranked_context.py": {
+   "sha": "7803b6305839e209b6f88b69147499a144d5659a4e9024d435e09013effc1ae0",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/get_related_symbols.py": {
+   "sha": "5e9075d21439f21c2399d8dd53ef6405566d5147b9975f50f47ff844ea359d58",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/get_repo_health.py": {
+   "sha": "c1bc73abaafb2ddbab01a972ce3e54434d16f3aa3066ecbd99e007e9e3999ca0",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/get_repo_map.py": {
+   "sha": "d8f1217d5cc97435f7c4c1f6575ca3095d2a84ac93cf6594281c8e149439f0d7",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/get_signal_chains.py": {
+   "sha": "788a2e5b077636acb073e77184e7f6d0ce1cfcbcfdd4842bbd9e00eced1fdd73",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/get_symbol.py": {
+   "sha": "065878673c7d39a63878abf9edf81af0b13d475b4f85bcf5c9136ebcca6e0853",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/get_symbol_complexity.py": {
+   "sha": "e57c3030b716c5ff22cd5e6fa9489a05e9d8f200a43d115f1d3e93dff9d6622b",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/get_symbol_diff.py": {
+   "sha": "6d4db1d015a5bdc85d9140418b8e1819e6550533a2e66e30efd7514577078db8",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/get_symbol_importance.py": {
+   "sha": "f4940cb895df1c54ff5b6bc6d4e43d463642568c3b216812a7ce377f55e7ac7d",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/get_symbol_provenance.py": {
+   "sha": "ec221379d21429031b9ba5b21dcf8b6bb36988756e941f1e7f97c259483fad7f",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/get_tectonic_map.py": {
+   "sha": "e6316be62f93e292fd67903f04e3bdfb87f1c66e970909b5fbbe84227604ebb9",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/get_untested_symbols.py": {
+   "sha": "c254095c55c9c85d7b5f94c6ddc226029d3dcf62868b8bc242881e603802cd3e",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/list_workspaces.py": {
+   "sha": "4cdf1b0e9746a8494f1c153e8c3265d1f42f8699c80707dba96182afbb250da5",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/package_registry.py": {
+   "sha": "f7406cac6b83cde4121beb463f20f9b2dcba1948627fbefb28d8f6a73939be5f",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/plan_refactoring.py": {
+   "sha": "fa938519db5af6b67f66cfaa13825e237975e69a46e36c15d0c525e2c2e0feca",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/resolve_repo.py": {
+   "sha": "b07821b3f0a3823c6db1601e1edf7a6e5b04e7005acdab216aa7cbd9a68fefd0",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/search_ast.py": {
+   "sha": "d0972dfb528952f50e6b239e1db3456cef9e6b14c69fe2cd3bd1cbbc276d3259",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/search_columns.py": {
+   "sha": "cfbafc49ee0e0c2bc011f3ee6d3d506a2e1f52a7b5fabf69fa875eb9348f8262",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/search_symbols.py": {
+   "sha": "78e927367ac1278fbc3d2e110fc72228c2f94eadb616869a94ae892a37a46888",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/search_text.py": {
+   "sha": "ce2d86c16a37c11d5ae84ea93ef0eaef255d91d8d880085746fbf07f0426180c",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/suggest_corrections.py": {
+   "sha": "eb2f9766bfd13f93acda6c457d87d2969b10236b887cf8415af6f8de85defb91",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/suggest_queries.py": {
+   "sha": "0cb75e3684e23a124bf14d15729a3c0584dbdbd1859cec542bc322edd00f64f5",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/summarize_repo.py": {
+   "sha": "91bb310302928caf80cf4fa21748cddf968510fd596263fd77686426c57931d7",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "src/jcodemunch_mcp/tools/winnow_symbols.py": {
+   "sha": "62b193b6958c7a34aef7da13cc81995f6dd09adb35ffc7286912cd1a79b47a8a",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "tests/test_branch_following.py": {
+   "sha": "ba5e8ce281eb3dcefea6126bf6c9ccbbf5db8ce9deeaba7c2fe64b3c80c813f3",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "tests/test_call_hierarchy.py": {
+   "sha": "349aa215b27da0f996e1d5b45b76787c85e1b7497f3fc301880634c54ce2299c",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "tests/test_checkout_branch_cheap.py": {
+   "sha": "06164542f7d7b1c7f367e6ea9c21f284b62c072c74388d79d2640544d3ae1bbb",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "tests/test_follow_checkout.py": {
+   "sha": "b98224bff8dbe830b8a10fb5ee9924d44a70acd18208fc035bc119dd7ad829b2",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "tests/test_plan_refactoring.py": {
+   "sha": "c68e6535ebdad9540e6de43bc2456079da0439ebc042350b9770f86c69c238c3",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  },
+  "tests/test_v1_108_199.py": {
+   "sha": "adb0d48342a3e0cd78e7c83e3f8be8977366adacbc56d51cb58bf80bcdfead35",
+   "model": "z-ai/glm-5.3-flash",
+   "when": "20260907-192024",
+   "artifact": ".adversary\\reviews\\gate_20260907-192024.md"
+  }
+ },
+ "artifacts": {
+  ".adversary\\reviews\\gate_20260907-192024.md": "model: z-ai/glm-5.3-flash | usage: {'prompt_tokens': 212903, 'completion_tokens': 1708, 'total_tokens': 214611, 'cost': 0.0218881, 'is_byok': False, 'prompt_tokens_details': {'cached_tokens': 0, 'cache_write_tokens': 0, 'audio_tokens': 0, 'video_tokens': 0}, 'cost_details': {'upstream_inference_cost': 0.0218881, 'upstream_inference_prompt_cost': 0.0212903, 'upstream_inference_completions_cost': 0.0005978}, 'completion_tokens_details': {'reasoning_tokens': 1128, 'image_tokens': 0, 'audio_tokens': 0}} | scrubbed: 1 | files: ['src/jcodemunch_mcp/storage/index_store.py', 'src/jcodemunch_mcp/tools/_call_graph.py', 'src/jcodemunch_mcp/tools/_utils.py', 'src/jcodemunch_mcp/tools/assemble_task_context.py', 'src/jcodemunch_mcp/tools/audit_agent_config.py', 'src/jcodemunch_mcp/tools/check_delete_safe.py', 'src/jcodemunch_mcp/tools/check_edit_safe.py', 'src/jcodemunch_mcp/tools/check_references.py', 'src/jcodemunch_mcp/tools/check_rename_safe.py', 'src/jcodemunch_mcp/tools/digest.py', 'src/jcodemunch_mcp/tools/find_dead_code.py', 'src/jcodemunch_mcp/tools/find_implementations.py', 'src/jcodemunch_mcp/tools/find_importers.py', 'src/jcodemunch_mcp/tools/find_references.py', 'src/jcodemunch_mcp/tools/find_similar_symbols.py', 'src/jcodemunch_mcp/tools/flow_edges.py', 'src/jcodemunch_mcp/tools/get_architecture_metrics.py', 'src/jcodemunch_mcp/tools/get_blast_radius.py', 'src/jcodemunch_mcp/tools/get_call_hierarchy.py', 'src/jcodemunch_mcp/tools/get_changed_symbols.py', 'src/jcodemunch_mcp/tools/get_churn_rate.py', 'src/jcodemunch_mcp/tools/get_class_hierarchy.py', 'src/jcodemunch_mcp/tools/get_context_bundle.py', 'src/jcodemunch_mcp/tools/get_coupling_metrics.py', 'src/jcodemunch_mcp/tools/get_cross_repo_map.py', 'src/jcodemunch_mcp/tools/get_dead_code_v2.py', 'src/jcodemunch_mcp/tools/get_decorator_census.py', 'src/jcodemunch_mcp/tools/get_delivery_metrics.py', 'src/jcodemunch_mcp/tools/get_dependency_cycles.py', 'src/jcodemunch_mcp/tools/get_dependency_graph.py', 'src/jcodemunch_mcp/tools/get_endpoint_impact.py', 'src/jcodemunch_mcp/tools/get_extraction_candidates.py', 'src/jcodemunch_mcp/tools/get_file_content.py', 'src/jcodemunch_mcp/tools/get_file_risk.py', 'src/jcodemunch_mcp/tools/get_group_contracts.py', 'src/jcodemunch_mcp/tools/get_hotspots.py', 'src/jcodemunch_mcp/tools/get_impact_preview.py', 'src/jcodemunch_mcp/tools/get_layer_violations.py', 'src/jcodemunch_mcp/tools/get_parity_map.py', 'src/jcodemunch_mcp/tools/get_pr_risk_profile.py', 'src/jcodemunch_mcp/tools/get_project_intel.py', 'src/jcodemunch_mcp/tools/get_ranked_context.py', 'src/jcodemunch_mcp/tools/get_related_symbols.py', 'src/jcodemunch_mcp/tools/get_repo_health.py', 'src/jcodemunch_mcp/tools/get_repo_map.py', 'src/jcodemunch_mcp/tools/get_signal_chains.py', 'src/jcodemunch_mcp/tools/get_symbol.py', 'src/jcodemunch_mcp/tools/get_symbol_complexity.py', 'src/jcodemunch_mcp/tools/get_symbol_diff.py', 'src/jcodemunch_mcp/tools/get_symbol_importance.py', 'src/jcodemunch_mcp/tools/get_symbol_provenance.py', 'src/jcodemunch_mcp/tools/get_tectonic_map.py', 'src/jcodemunch_mcp/tools/get_untested_symbols.py', 'src/jcodemunch_mcp/tools/list_workspaces.py', 'src/jcodemunch_mcp/tools/package_registry.py', 'src/jcodemunch_mcp/tools/plan_refactoring.py', 'src/jcodemunch_mcp/tools/resolve_repo.py', 'src/jcodemunch_mcp/tools/search_ast.py', 'src/jcodemunch_mcp/tools/search_columns.py', 'src/jcodemunch_mcp/tools/search_symbols.py', 'src/jcodemunch_mcp/tools/search_text.py', 'src/jcodemunch_mcp/tools/suggest_corrections.py', 'src/jcodemunch_mcp/tools/suggest_queries.py', 'src/jcodemunch_mcp/tools/summarize_repo.py', 'src/jcodemunch_mcp/tools/winnow_symbols.py', 'tests/test_branch_following.py', 'tests/test_call_hierarchy.py', 'tests/test_checkout_branch_cheap.py', 'tests/test_follow_checkout.py', 'tests/test_plan_refactoring.py', 'tests/test_v1_108_199.py']\n\nI examined the follow/checkout machinery (`_utils.py`, `resolve_repo.py`), the reader/writer split, the cache-key threading, `_call_graph`, `get_changed_symbols._base_head`, and the new tests, and hunted for cases the follow logic gets wrong.\n\nPoints checked and settled:\n\n- **Checkout vs. cache-key consistency**: `find_references` / `get_blast_radius` compute `checkout_delta_branch(...)` before `load_view` reads the same `.git/HEAD`; both observe the same filesystem state within a call, and a checkout switch changes the key. Consistent.\n- **`_delta_branches` stash**: transient `list_branches` failures are not stashed (returns `frozenset()` without assignment), matching the round-2 fix; the stash lives on the per-call-hydrated base object, so a newly saved delta is seen by the next `load_view` (fresh `IndexStore` per tool call).\n- **Worktree HEAD resolution**: relative `gitdir:` pointers are resolved against the worktree path; malformed pointers, tags, detached HEAD all return None \u2192 base view. Tested.\n- **`_base_head`**: on a composed view it requires a recorded `base_head`, falling back to \"\" (honest error) rather than the branch head \u2014 the empty-diff regression is addressed; base-index default unchanged.\n- **Writer/read split**: `summarize_repo` reverted to `store.load_index` (writer); `resolve_fqn` now goes through `load_view`; the structural guards pin both. plan_refactoring's `_get_file_content_safe` wrapper now carries `index` on every call site including `_check_symbol_in_template_interp`-adjacent reads.\n- **`get_symbol_source` narrow path**: yields to `load_view` whenever the checkout has a delta; delta symbols are no longer \"not found.\"\n- **`_ContentCache`**: index threaded through both BFS builders, `flow_edges`, and the no-cache fallback branches in the finders; the test-fake stores in `test_plan_refactoring`/`test_v1_108_199`/`test_call_hierarchy` accept the new keyword without breaking delegation.\n- **Behavioral change in `get_changed_symbols` default**: on a followed branch view with branch meta lacking `base_head`, the default-diff now errors instead of silently using the branch head \u2014 a deliberate fail-closed per the round-2 finding, not a defect.\n\nNothing introduced by this change set refutes its correctness; the residual risks (transient `list_branches` failure in `checkout_delta_branch` causing a one-call base-view fallback) are consistent with the design's fail-to-base posture and pre-exist the same failure class already handled in `_delta_branches`.\n\nVERDICT: CLEAR"
+ }
+}
