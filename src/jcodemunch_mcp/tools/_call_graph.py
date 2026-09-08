@@ -77,19 +77,20 @@ class _ContentCache:
     argument so direct callers of the finders keep their original behavior.
     """
 
-    __slots__ = ("_store", "_owner", "_repo", "_content", "_lines")
+    __slots__ = ("_store", "_owner", "_repo", "_index", "_content", "_lines")
 
-    def __init__(self, store: "IndexStore", owner: str, repo_name: str):
+    def __init__(self, store: "IndexStore", owner: str, repo_name: str, index: Optional["CodeIndex"] = None):
         self._store = store
         self._owner = owner
         self._repo = repo_name
+        self._index = index  # the view whose bytes we serve (B2: branch bytes on a followed checkout)
         self._content: dict[str, Optional[str]] = {}
         self._lines: dict[str, list[str]] = {}
 
     def content(self, file_path: str) -> Optional[str]:
         if file_path not in self._content:
             self._content[file_path] = self._store.get_file_content(
-                self._owner, self._repo, file_path
+                self._owner, self._repo, file_path, _index=self._index
             )
         return self._content[file_path]
 
@@ -539,7 +540,7 @@ def find_direct_callers(
         if content_cache is not None:
             file_content = content_cache.content(imp_file)
         else:
-            file_content = store.get_file_content(owner, repo_name, imp_file)
+            file_content = store.get_file_content(owner, repo_name, imp_file, _index=index)
         if not file_content:
             continue
         # Fast gate: skip file if sym_name not present anywhere
@@ -621,7 +622,7 @@ def find_direct_callees(
     if content_cache is not None:
         file_content = content_cache.content(sym_file)
     else:
-        file_content = store.get_file_content(owner, repo_name, sym_file)
+        file_content = store.get_file_content(owner, repo_name, sym_file, _index=index)
     if not file_content:
         return list(dispatch_cls) + list(lsp_callees)
 
@@ -693,7 +694,7 @@ def bfs_callers(
     results: list[dict] = []
     depth_reached = 0
     symbol_index: dict[str, dict] = getattr(index, "_symbol_index", {})
-    content_cache = _ContentCache(store, owner, repo_name)
+    content_cache = _ContentCache(store, owner, repo_name, index)
 
     # Depth-1 callers
     for c in find_direct_callers(index, store, owner, repo_name, sym, reverse_adj, symbols_by_file, content_cache):
@@ -742,7 +743,7 @@ def bfs_callees(
     results: list[dict] = []
     depth_reached = 0
     symbol_index: dict[str, dict] = getattr(index, "_symbol_index", {})
-    content_cache = _ContentCache(store, owner, repo_name)
+    content_cache = _ContentCache(store, owner, repo_name, index)
     callee_index = _CalleeNameIndex(symbols_by_file)
 
     for c in find_direct_callees(index, store, owner, repo_name, sym, symbols_by_file, content_cache, callee_index):

@@ -6,7 +6,7 @@ from collections import deque
 from typing import Optional
 
 from ..storage import IndexStore
-from ._utils import index_status_to_tool_error, resolve_repo
+from ._utils import load_view, index_status_to_tool_error, resolve_repo
 
 # Patterns to extract base class / interface names from signatures
 _EXTENDS_RE = re.compile(
@@ -93,7 +93,7 @@ def get_class_hierarchy(
         return {"error": str(e)}
 
     store = IndexStore(base_path=storage_path)
-    index = store.load_index(owner, name)
+    index = load_view(store, owner, name)
     if not index:
         return index_status_to_tool_error(store.inspect_index(owner, name))
 

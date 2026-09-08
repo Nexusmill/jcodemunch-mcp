@@ -10,7 +10,7 @@ from typing import Optional
 
 from ..retrieval.verdict import suggest_symbol_ids, symbol_verdict_for_index
 from ..storage import IndexStore, record_savings, estimate_savings, cost_avoided as _cost_avoided
-from ._utils import index_status_to_tool_error, resolve_repo, resolve_fqn
+from ._utils import checkout_has_delta, load_view, index_status_to_tool_error, resolve_repo, resolve_fqn
 
 logger = logging.getLogger(__name__)
 
@@ -470,9 +470,13 @@ def get_symbol_source(
     # promotes on `index.symbols` below, which is reached only on a MISS to
     # build `did_you_mean`. Paying for the corpus to spell-check a wrong id is
     # the right trade; paying for it to serve a correct one is not.
-    index = store.open_selective(owner, name, symbol_ids=list(ids))
+    # B2: a selective view reads BASE rows only - on a checkout with a branch delta the
+    # composed view is required, so the narrow path yields (a delta symbol is otherwise
+    # "not found" and a modified one returns base bytes).
+    index = (None if checkout_has_delta(store, owner, name)
+             else store.open_selective(owner, name, symbol_ids=list(ids)))
     if index is None:
-        index = store.load_index(owner, name)
+        index = load_view(store, owner, name)
 
     if not index:
         return index_status_to_tool_error(store.inspect_index(owner, name))

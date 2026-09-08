@@ -346,7 +346,7 @@ class _CountingStore:
         self._contents = contents
         self.reads: list[str] = []
 
-    def get_file_content(self, owner, name, path):
+    def get_file_content(self, owner, name, path, _index=None):
         self.reads.append(path)
         return self._contents.get(path, "")
 

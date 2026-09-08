@@ -7,7 +7,7 @@ from typing import Optional
 
 from ..storage import IndexStore
 from ..parser.imports import resolve_specifier
-from ._utils import resolve_repo as _resolve_repo
+from ._utils import load_view, resolve_repo as _resolve_repo
 
 
 def check_rename_safe(
@@ -40,7 +40,7 @@ def check_rename_safe(
     except ValueError as e:
         return {"error": str(e)}
     store = IndexStore(base_path=storage_path)
-    index = store.load_index(owner, name)
+    index = load_view(store, owner, name)
 
     if index is None:
         return {"error": f"No index found for {repo!r}. Run index_folder first."}

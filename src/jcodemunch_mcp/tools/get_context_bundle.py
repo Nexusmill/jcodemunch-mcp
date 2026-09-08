@@ -8,7 +8,7 @@ from typing import Optional
 
 from ..storage import IndexStore, record_savings, estimate_savings, cost_avoided as _cost_avoided
 from ..parser.imports import resolve_specifier
-from ._utils import index_status_to_tool_error, resolve_repo
+from ._utils import load_view, index_status_to_tool_error, resolve_repo
 
 _BYTES_PER_TOKEN = 4
 
@@ -287,7 +287,7 @@ def get_context_bundle(
         return {"error": str(e)}
 
     store = IndexStore(base_path=storage_path)
-    index = store.load_index(owner, name)
+    index = load_view(store, owner, name)
     if not index:
         return index_status_to_tool_error(store.inspect_index(owner, name))
 

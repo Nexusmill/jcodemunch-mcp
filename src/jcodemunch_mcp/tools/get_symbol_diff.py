@@ -4,7 +4,7 @@ import time
 from typing import Optional
 
 from ..storage import IndexStore
-from ._utils import index_status_to_tool_error, resolve_repo
+from ._utils import load_view, index_status_to_tool_error, resolve_repo
 
 
 def get_symbol_diff(
@@ -39,8 +39,8 @@ def get_symbol_diff(
         return {"error": str(e)}
 
     store = IndexStore(base_path=storage_path)
-    index_a = store.load_index(owner_a, name_a)
-    index_b = store.load_index(owner_b, name_b)
+    index_a = load_view(store, owner_a, name_a)
+    index_b = load_view(store, owner_b, name_b)
 
     if not index_a:
         return index_status_to_tool_error(store.inspect_index(owner_a, name_a))

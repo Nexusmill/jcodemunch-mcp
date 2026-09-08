@@ -9,7 +9,7 @@ from typing import Optional
 
 from ..storage import IndexStore
 from ..parser.imports import resolve_specifier
-from ._utils import index_status_to_tool_error, resolve_repo
+from ._utils import load_view, index_status_to_tool_error, resolve_repo
 from ._call_graph import _word_match
 from .find_dead_code import _is_test_file
 
@@ -71,7 +71,7 @@ def _symbol_reached_by_tests(
 
     # --- Text heuristic fallback: word-boundary match in test file content ---
     for tf in test_importers:
-        content = store.get_file_content(owner, repo_name, tf)
+        content = store.get_file_content(owner, repo_name, tf, _index=index)
         if content and _word_match(content, sym_name):
             return True, 0.0, "reached"
 
@@ -115,7 +115,7 @@ def get_untested_symbols(
         return {"error": str(e)}
 
     store = IndexStore(base_path=storage_path)
-    index = store.load_index(owner, name)
+    index = load_view(store, owner, name)
     if not index:
         return index_status_to_tool_error(store.inspect_index(owner, name))
 

@@ -25,7 +25,7 @@ import time
 from typing import Optional
 
 from ..storage import IndexStore, record_savings, estimate_savings, cost_avoided
-from ._utils import index_status_to_tool_error, resolve_repo
+from ._utils import load_view, index_status_to_tool_error, resolve_repo
 from .get_context_bundle import _count_tokens
 
 logger = logging.getLogger(__name__)
@@ -175,7 +175,7 @@ def assemble_task_context(
             the task when omitted.
         intent: Optional override; auto-detected from the task when omitted.
             Recognised: explore, debug, refactor, extend, audit, review.
-        token_budget: End-to-end hard cap on returned tokens (default 8000).
+        token_budget: end-to-end hard cap on returned tokens (default 8000).
         include: Optional whitelist of stages to run, intersected with the
             intent strategy (e.g. ["anchor", "blast", "runtime"]). When omitted,
             the full intent strategy runs.
@@ -205,7 +205,7 @@ def assemble_task_context(
         return {"error": str(e)}
 
     store = IndexStore(base_path=storage_path)
-    index = store.load_index(owner, name)
+    index = load_view(store, owner, name)
     if not index:
         return index_status_to_tool_error(store.inspect_index(owner, name))
 

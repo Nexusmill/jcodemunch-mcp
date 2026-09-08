@@ -20,7 +20,7 @@ import time
 from typing import Optional
 
 from ..storage import IndexStore
-from ._utils import resolve_repo
+from ._utils import load_view, resolve_repo
 from .get_dead_code_v2 import get_dead_code_v2
 from .get_dependency_cycles import get_dependency_cycles
 from .get_hotspots import get_hotspots
@@ -137,7 +137,7 @@ def get_repo_health(
         return {"error": str(e)}
 
     store = IndexStore(base_path=storage_path)
-    index = store.load_index(owner, name)
+    index = load_view(store, owner, name)
     if index is None:
         return {"error": f"No index found for {repo!r}. Run index_folder first."}
 

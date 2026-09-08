@@ -6,7 +6,7 @@ from fnmatch import fnmatch
 from typing import Optional
 
 from ..storage import IndexStore, record_savings, estimate_savings, cost_avoided as _cost_avoided
-from ._utils import index_status_to_tool_error, ledger_base_path as _ledger_base_path, resolve_repo
+from ._utils import load_view, index_status_to_tool_error, ledger_base_path as _ledger_base_path, resolve_repo
 from .get_context_bundle import _count_tokens
 from .search_symbols import (
     _tokenize,
@@ -285,7 +285,7 @@ def get_ranked_context(
         return {"error": str(e)}
 
     store = IndexStore(base_path=storage_path)
-    index = store.load_index(owner, name)
+    index = load_view(store, owner, name)
     if not index:
         return index_status_to_tool_error(store.inspect_index(owner, name))
 

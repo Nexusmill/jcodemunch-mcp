@@ -11,6 +11,7 @@ import os
 import re
 import time
 from typing import Optional
+from ._utils import load_view
 
 logger = logging.getLogger(__name__)
 
@@ -1172,7 +1173,7 @@ def get_project_intel(
         return {"error": str(e)}
 
     store = IndexStore(base_path=storage_path)
-    index = store.load_index(owner, name)
+    index = load_view(store, owner, name)
     if index is None:
         return {"error": f"No index found for {repo}"}
 

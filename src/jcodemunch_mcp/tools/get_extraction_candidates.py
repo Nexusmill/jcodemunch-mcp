@@ -16,7 +16,7 @@ from typing import Optional
 
 from ..storage import IndexStore
 from ..parser.imports import resolve_specifier
-from ._utils import resolve_repo as _resolve_repo
+from ._utils import load_view, resolve_repo as _resolve_repo
 from ._call_graph import _word_match
 
 
@@ -53,7 +53,7 @@ def get_extraction_candidates(
     except ValueError as e:
         return {"error": str(e)}
     store = IndexStore(base_path=storage_path)
-    index = store.load_index(owner, name)
+    index = load_view(store, owner, name)
 
     if index is None:
         return {"error": f"No index found for {repo!r}. Run index_folder first."}
@@ -114,7 +114,7 @@ def get_extraction_candidates(
         sym_name = sym.get("name", "")
         caller_files: list[str] = []
         for imp_file in importer_files:
-            content = store.get_file_content(owner, name, imp_file)
+            content = store.get_file_content(owner, name, imp_file, _index=index)
             if content and _word_match(content, sym_name):
                 caller_files.append(imp_file)
 

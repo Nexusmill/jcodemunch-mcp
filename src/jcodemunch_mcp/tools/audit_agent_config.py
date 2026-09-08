@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from ..storage import IndexStore
+from ._utils import load_view
 
 logger = logging.getLogger(__name__)
 
@@ -652,7 +653,7 @@ def audit_agent_config(
             from ._utils import resolve_repo as _resolve
             owner, name = _resolve(repo, storage_path)
             store = IndexStore(base_path=storage_path)
-            index = store.load_index(owner, name)
+            index = load_view(store, owner, name)
             if index:
                 all_symbol_names = {s.get("name", "") for s in index.symbols if s.get("name")}
                 for s in index.symbols:

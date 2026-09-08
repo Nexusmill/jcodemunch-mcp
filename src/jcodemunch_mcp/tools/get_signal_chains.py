@@ -23,7 +23,7 @@ from typing import Optional
 logger = logging.getLogger(__name__)
 
 from ..storage import IndexStore
-from ._utils import resolve_repo
+from ._utils import load_view, resolve_repo
 from ._call_graph import _CalleeNameIndex, build_symbols_by_file, find_direct_callees
 from .flow_edges import resolve_flow_edges
 
@@ -294,7 +294,7 @@ def get_signal_chains(
         return {"error": str(e)}
 
     store = IndexStore(base_path=storage_path)
-    index = store.load_index(owner, name)
+    index = load_view(store, owner, name)
     if index is None:
         return {"error": f"No index found for {repo!r}. Run index_folder first."}
 

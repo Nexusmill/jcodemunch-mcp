@@ -101,6 +101,42 @@ def _git_common_dir_cheap(path: Path) -> Optional[Path]:
     return None
 
 
+def _checkout_branch_cheap(path: Path) -> Optional[str]:
+    """Symbolic branch the checkout at `path` is on, via filesystem reads only.
+
+    Reads ``.git/HEAD`` (following a linked-worktree ``gitdir:`` pointer so a
+    worktree reports ITS branch) and returns the name after ``ref: refs/heads/``
+    with slashes kept (``gate/x``). Returns None for a non-git path, a detached
+    HEAD (bare SHA), a tag/other ref, or a missing / unreadable / malformed
+    HEAD or pointer. Never spawns git: this runs on every retrieval call
+    (B2, spec 2026-09-06-jcm-branch-following item 1).
+    """
+    git = path / ".git"
+    try:
+        if git.is_dir():
+            git_dir = git
+        elif git.is_file():
+            content = git.read_text(encoding="utf-8").strip()
+            if not content.startswith("gitdir:"):
+                return None
+            gitdir_str = content[len("gitdir:"):].strip()
+            if not gitdir_str:
+                return None
+            git_dir = Path(gitdir_str)
+            if not git_dir.is_absolute():
+                git_dir = (path / git_dir).resolve()
+        else:
+            return None
+        head = (git_dir / "HEAD").read_text(encoding="utf-8").strip()
+    except (OSError, UnicodeDecodeError):
+        return None
+    prefix = "ref: refs/heads/"
+    if not head.startswith(prefix):
+        return None
+    name = head[len(prefix):].strip()
+    return name or None
+
+
 def _git_toplevel(path: Path) -> Optional[Path]:
     """Get the git repository root for a path, or None.
 

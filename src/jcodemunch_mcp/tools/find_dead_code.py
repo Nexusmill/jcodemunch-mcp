@@ -11,7 +11,7 @@ from typing import Optional
 
 from ..storage import IndexStore
 from ..parser.imports import resolve_specifier
-from ._utils import index_status_to_tool_error, resolve_repo
+from ._utils import load_view, index_status_to_tool_error, resolve_repo
 from ..parser.context._route_utils import ENTRY_POINT_DECORATOR_RE
 
 logger = logging.getLogger(__name__)
@@ -115,7 +115,7 @@ def _package_json_entries(index, store, owner: str, repo_name: str) -> set[str]:
         fn = f.replace("\\", "/").rsplit("/", 1)[-1]
         if fn != "package.json":
             continue
-        content = store.get_file_content(owner, repo_name, f)
+        content = store.get_file_content(owner, repo_name, f, _index=index)
         if not content:
             continue
         try:
@@ -216,7 +216,7 @@ def find_dead_code(
         return {"error": str(e)}
 
     store = IndexStore(base_path=storage_path)
-    index = store.load_index(owner, name)
+    index = load_view(store, owner, name)
     if not index:
         return index_status_to_tool_error(store.inspect_index(owner, name))
 
@@ -297,7 +297,7 @@ def find_dead_code(
             continue
         if not (f.endswith(".py") or f.endswith(".pyw")):
             continue
-        content = store.get_file_content(owner, name, f)
+        content = store.get_file_content(owner, name, f, _index=index)
         if content and _MAIN_GUARD_RE.search(content):
             live_roots.add(f)
 

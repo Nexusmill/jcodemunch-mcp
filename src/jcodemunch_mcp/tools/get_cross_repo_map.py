@@ -8,6 +8,7 @@ from .package_registry import (
     build_package_registry,
     extract_root_package_from_specifier,
 )
+from ._utils import load_view
 
 
 def get_cross_repo_map(
@@ -68,7 +69,7 @@ def get_cross_repo_map(
         if not repo_id or "/" not in repo_id:
             continue
         owner, name = repo_id.split("/", 1)
-        index = store.load_index(owner, name)
+        index = load_view(store, owner, name)
         if not index or not index.imports:
             continue
 

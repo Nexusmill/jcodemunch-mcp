@@ -8,6 +8,7 @@ import os
 import re
 from pathlib import Path
 from typing import Optional
+from ._utils import load_view
 
 logger = logging.getLogger(__name__)
 
@@ -429,7 +430,7 @@ def resolve_cross_repo_file(
         if "/" not in repo_id:
             continue
         owner, name = repo_id.split("/", 1)
-        index = store.load_index(owner, name)
+        index = load_view(store, owner, name)
         if not index:
             continue
 

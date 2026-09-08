@@ -6,7 +6,7 @@ from typing import Optional
 
 from ..storage import IndexStore, result_cache_get, result_cache_put
 from ..storage.generation import connect_readonly
-from ._utils import index_status_to_tool_error, resolve_repo
+from ._utils import load_view, index_status_to_tool_error, resolve_repo, checkout_delta_branch
 
 
 def _build_import_name_index(index) -> dict[str, list[tuple[str, dict]]]:
@@ -69,7 +69,7 @@ def _calling_symbols_in_file(
     # Lazy: build symbols_by_file only once per call_chain enrichment pass.
     # We do it here inline to keep the function self-contained; callers can
     # pass a pre-built map if they need efficiency across multiple files.
-    file_content = store.get_file_content(owner, repo_name, src_file)
+    file_content = store.get_file_content(owner, repo_name, src_file, _index=index)
     if not file_content:
         return []
     if not _word_match(file_content, identifier):
@@ -163,7 +163,7 @@ def _find_references_single(
     if store is not None:
         for ref in visible:
             try:
-                content = store.get_file_content(owner, name, ref["file"])
+                content = store.get_file_content(owner, name, ref["file"], _index=index)
             except Exception:
                 content = None
             if not content:
@@ -443,7 +443,7 @@ def find_references(
         return {"error": str(e)}
 
     store = IndexStore(base_path=storage_path)
-    index = store.load_index(owner, name)
+    index = load_view(store, owner, name)
     if not index:
         return index_status_to_tool_error(store.inspect_index(owner, name))
 
@@ -455,7 +455,8 @@ def find_references(
         )
     else:
         repo_key = f"{owner}/{name}"
-        specific_key = (identifier, max_results, include_call_chain)
+        # keyed on the view: a `git checkout` writes nothing, so nothing else invalidates
+        specific_key = (checkout_delta_branch(store, owner, name), identifier, max_results, include_call_chain)
         cached = result_cache_get("find_references", repo_key, specific_key)
         if cached is not None:
             result = dict(cached)

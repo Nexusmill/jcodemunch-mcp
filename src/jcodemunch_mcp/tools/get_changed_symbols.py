@@ -11,7 +11,7 @@ from typing import Optional
 from ..storage import IndexStore
 from ..parser import parse_file, get_language_for_path
 from ..parser.symbols import compute_content_hash
-from ._utils import index_status_to_tool_error, resolve_repo
+from ._utils import load_view, index_status_to_tool_error, resolve_repo
 from .get_blast_radius import _build_reverse_adjacency, _bfs_importers
 
 logger = logging.getLogger(__name__)
@@ -85,6 +85,25 @@ def _parse_symbols_from_content(content: str, rel_path: str, repo: str | None = 
     return result
 
 
+def _base_head(store, owner: str, name: str, index) -> str:
+    """The sha the diff defaults to. A composed branch view's `git_head` is the BRANCH head;
+    the delta's recorded `base_head` is the base sha it was indexed against (pre-B2 the base
+    index's own head, which is what the default always meant)."""
+    branch = getattr(index, "branch", "") or ""
+    if branch:
+        try:
+            for b in store.list_branches(owner, name):
+                if b.get("branch") == branch and b.get("base_head"):
+                    return b["base_head"]
+        except Exception:
+            pass
+        # the branch meta is unreadable or carries no base sha: the composed view's own
+        # git_head is the BRANCH head, which would silently reproduce the empty-diff defect
+        # (gate round 2) - report no baseline instead
+        return ""
+    return index.git_head or ""
+
+
 def get_changed_symbols(
     repo: str,
     since_sha: Optional[str] = None,
@@ -103,7 +122,8 @@ def get_changed_symbols(
 
     Args:
         repo: Repository identifier (must be locally indexed with index_folder).
-        since_sha: Compare from this SHA. Defaults to the SHA stored at index time.
+        since_sha: Compare from this SHA. Defaults to the SHA stored at index time
+                   (on a followed branch view: the base branch's indexed SHA).
         until_sha: Compare to this SHA (default "HEAD").
         include_blast_radius: Also return downstream importers for each changed symbol.
         max_blast_depth: Hop limit for blast radius traversal (capped at 5).
@@ -123,7 +143,7 @@ def get_changed_symbols(
         return {"error": str(e)}
 
     store = IndexStore(base_path=storage_path)
-    index = store.load_index(owner, name)
+    index = load_view(store, owner, name)
     if not index:
         return index_status_to_tool_error(store.inspect_index(owner, name))
 
@@ -143,15 +163,19 @@ def get_changed_symbols(
             return {"error": "git not found on PATH. Install git and ensure it is in PATH."}
         return {"error": f"Not a git repository or git unavailable: {err}"}
 
-    # Resolve since_sha — default to the SHA stored at index time
+    # Resolve since_sha — default to the SHA stored at index time. On a followed branch
+    # view (B2) that is the BASE branch's indexed sha, not the branch head the composed view
+    # carries: branch_head..HEAD is empty for the very branch the caller asks about
+    # (get_pr_risk_profile reported risk 0.0; gate round 1 on B2 part 2, finding 2).
     if since_sha is None:
-        if not index.git_head:
+        since_sha = _base_head(store, owner, name, index)
+        if not since_sha:
             return {
-                "error": "No SHA stored at index time. Re-run index_folder, or provide since_sha explicitly.",
+                "error": "No baseline SHA for this view (none stored at index time, or the branch "
+                         "view's base sha is unavailable). Re-run index_folder, or provide since_sha explicitly.",
                 "is_local": True,
                 "source_root": cwd,
             }
-        since_sha = index.git_head
 
     resolved_since = _resolve_sha(since_sha, cwd)
     if not resolved_since:

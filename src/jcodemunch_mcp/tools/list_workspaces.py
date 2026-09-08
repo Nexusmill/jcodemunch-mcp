@@ -35,6 +35,7 @@ import re
 import time
 from pathlib import Path
 from typing import Optional
+from ._utils import load_view
 
 logger = logging.getLogger(__name__)
 
@@ -467,7 +468,7 @@ def list_workspaces(
         return {"error": str(e)}
 
     store = IndexStore(base_path=storage_path)
-    index = store.load_index(owner, name)
+    index = load_view(store, owner, name)
     if index is None:
         return {"error": f"No index found for {repo}"}
 

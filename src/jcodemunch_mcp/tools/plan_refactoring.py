@@ -15,7 +15,7 @@ from .get_blast_radius import (
     _name_in_content,
 )
 from ._call_graph import _symbol_body
-from ._utils import resolve_repo
+from ._utils import load_view, resolve_repo
 from ..storage import record_savings
 
 logger = logging.getLogger(__name__)
@@ -248,7 +248,7 @@ def plan_refactoring(
     except ValueError as e:
         return {"error": str(e)}
     store = IndexStore(storage_path)
-    index = store.load_index(owner, name)
+    index = load_view(store, owner, name)
     if index is None:
         return {"error": f"No index found for {repo}"}
 
@@ -321,7 +321,7 @@ def _find_affected_files(index, store, owner, name, sym_file, sym_name, depth):
 
     confirmed = []
     for imp_file in importer_files:
-        content, read_error = _get_file_content_safe(store, owner, name, imp_file)
+        content, read_error = _get_file_content_safe(store, owner, name, imp_file, index)
         # Fix F: Don't skip files with read errors - just don't confirm them
         if read_error:
             logger.debug(f"Could not read importer file {imp_file}: {read_error}")
@@ -520,7 +520,7 @@ def _scan_non_code_files(store, owner, name, index, old_name):
         ext = PurePosixPath(fpath).suffix.lower()
         if ext not in _NON_CODE_EXTENSIONS:
             continue
-        content, read_error = _get_file_content_safe(store, owner, name, fpath)
+        content, read_error = _get_file_content_safe(store, owner, name, fpath, index)
         if read_error:
             warnings.append({"file": fpath, "reason": "file_read_error", "error": read_error})
             continue
@@ -1445,7 +1445,7 @@ def _check_symbol_in_template_interp(content: str, symbol_name: str) -> bool:
 # Fix F: Safe file content retrieval with error detection
 # ---------------------------------------------------------------------------
 
-def _get_file_content_safe(store, owner: str, name: str, fpath: str) -> Tuple[str, Optional[str]]:
+def _get_file_content_safe(store, owner: str, name: str, fpath: str, index=None) -> Tuple[str, Optional[str]]:
     """Get file content with error detection.
     
     Fix F: Returns (content, error) tuple:
@@ -1453,7 +1453,7 @@ def _get_file_content_safe(store, owner: str, name: str, fpath: str) -> Tuple[st
     - ("", error_message) if file could not be read
     """
     try:
-        content = store.get_file_content(owner, name, fpath)
+        content = store.get_file_content(owner, name, fpath, _index=index)
         if content is None:
             return "", f"File not found or not indexed: {fpath}"
         return content, None
@@ -1482,7 +1482,7 @@ def _plan_rename(index, store, owner, name, sym, new_name, depth):
     edits = []
     file_read_warnings = []
     for fpath in all_files:
-        content, read_error = _get_file_content_safe(store, owner, name, fpath)
+        content, read_error = _get_file_content_safe(store, owner, name, fpath, index)
         if read_error:
             file_read_warnings.append({"file": fpath, "reason": "file_read_error", "error": read_error})
             continue
@@ -1558,7 +1558,7 @@ def _check_collision(index, new_name, sym_file, store, owner, name, depth):
 
 def _extract_symbol_with_deps(store, owner, name, index, sym):
     """Get symbol source + determine which imports from its file it needs."""
-    content, read_error = _get_file_content_safe(store, owner, name, sym["file"])
+    content, read_error = _get_file_content_safe(store, owner, name, sym["file"], index)
     if read_error:
         logger.warning(f"Could not read symbol source file: {read_error}")
         return "", []
@@ -1606,7 +1606,7 @@ def _plan_move(index, store, owner, name, sym, new_file, depth):
     dep_warnings = _find_inter_symbol_deps(index, store, owner, name, [sym], sym_file)
 
     # Source removal block
-    content, read_error = _get_file_content_safe(store, owner, name, sym_file)
+    content, read_error = _get_file_content_safe(store, owner, name, sym_file, index)
     if read_error:
         return {"error": f"Could not read source file: {read_error}"}
     lines = content.splitlines()
@@ -1691,7 +1691,7 @@ def _generate_import_rewrites(index, store, owner, name, affected_files, sym_nam
     new_module = _file_to_module(new_file)
 
     for fpath in affected_files:
-        content, read_error = _get_file_content_safe(store, owner, name, fpath)
+        content, read_error = _get_file_content_safe(store, owner, name, fpath, index)
         if read_error:
             warnings.append({"file": fpath, "reason": "file_read_error", "error": read_error})
             continue
@@ -1816,7 +1816,7 @@ def _plan_extract(index, store, owner, name, syms, new_file, depth):
     new_file_content = _build_new_file_content(all_bodies, import_lines, lang)
 
     # Source removals
-    content, read_error = _get_file_content_safe(store, owner, name, source_file)
+    content, read_error = _get_file_content_safe(store, owner, name, source_file, index)
     if read_error:
         return {"error": f"Could not read source file: {read_error}"}
     lines = content.splitlines()
@@ -1911,7 +1911,7 @@ def _find_inter_symbol_deps(index, store, owner, name, syms, source_file):
     - Staying symbol references extracted symbol (needs import in source file)
     """
     extracting_names = {s["name"] for s in syms}
-    content, read_error = _get_file_content_safe(store, owner, name, source_file)
+    content, read_error = _get_file_content_safe(store, owner, name, source_file, index)
     if read_error:
         return [{"reason": "file_read_error", "error": read_error, "file": source_file}]
     if not content:
@@ -1960,7 +1960,7 @@ def _plan_signature_change(index, store, owner, name, sym, new_signature, depth)
     lang = index.file_languages.get(sym_file, "python")
 
     # Definition edit
-    content, read_error = _get_file_content_safe(store, owner, name, sym_file)
+    content, read_error = _get_file_content_safe(store, owner, name, sym_file, index)
     if read_error:
         return {"error": f"Could not read source file: {read_error}"}
     lines = content.splitlines()
@@ -2125,7 +2125,7 @@ def _plan_signature_change(index, store, owner, name, sym, new_signature, depth)
     call_sites = []
     file_read_warnings = []
     for fpath in all_files:
-        file_content, read_error = _get_file_content_safe(store, owner, name, fpath)
+        file_content, read_error = _get_file_content_safe(store, owner, name, fpath, index)
         if read_error:
             file_read_warnings.append({"file": fpath, "reason": "file_read_error", "error": read_error})
             continue

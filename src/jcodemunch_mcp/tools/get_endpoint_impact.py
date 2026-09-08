@@ -32,7 +32,7 @@ import re
 from typing import Optional
 
 from ..storage import IndexStore
-from ._utils import resolve_repo
+from ._utils import load_view, resolve_repo
 from .flow_edges import resolve_flow_edges
 from .get_signal_chains import _classify_gateway, _extract_label
 from .get_blast_radius import get_blast_radius
@@ -419,7 +419,7 @@ def get_endpoint_impact(
     except Exception as e:
         return {"error": str(e)}
     store = IndexStore(base_path=storage_path)
-    index = store.load_index(owner, name)
+    index = load_view(store, owner, name)
     if index is None:
         return {"error": f"No index found for {repo!r}. Run index_folder first."}
     if not endpoint and not handler_symbol_id:

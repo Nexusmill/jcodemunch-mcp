@@ -33,7 +33,7 @@ import time
 from typing import Optional
 
 from ..storage import IndexStore
-from ._utils import index_status_to_tool_error, resolve_repo
+from ._utils import load_view, index_status_to_tool_error, resolve_repo
 from .find_similar_symbols import (
     _byte_ratio,
     _callee_set,
@@ -315,13 +315,13 @@ def get_parity_map(
         return {"error": f"target_repo: {e}"}
 
     store = IndexStore(base_path=storage_path)
-    s_index = store.load_index(s_owner, s_name)
+    s_index = load_view(store, s_owner, s_name)
     if not s_index:
         return index_status_to_tool_error(store.inspect_index(s_owner, s_name))
     if same_repo:
         t_index = s_index
     else:
-        t_index = store.load_index(t_owner, t_name)
+        t_index = load_view(store, t_owner, t_name)
         if not t_index:
             return index_status_to_tool_error(store.inspect_index(t_owner, t_name))
 

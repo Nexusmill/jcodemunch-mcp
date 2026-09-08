@@ -13,7 +13,7 @@ from ..retrieval.verdict import (
     index_changed_since_load as _index_changed_since_load,
     index_coverage_meta,
 )
-from ._utils import index_status_to_tool_error, resolve_repo, resolve_fqn
+from ._utils import load_view, index_status_to_tool_error, resolve_repo, resolve_fqn, checkout_delta_branch
 from .package_registry import extract_root_package_from_specifier
 from ._call_graph import build_symbols_by_file, bfs_callers
 from .find_dead_code import _is_test_file
@@ -371,7 +371,8 @@ def get_blast_radius(
 
     # Check session cache before the expensive BFS + content scans
     repo_key = f"{owner}/{name}"
-    specific_key = (symbol, depth, call_depth, bool(cross_repo), include_depth_scores, decorator_filter, include_source, source_budget, include_decisions)
+    # keyed on the view: a `git checkout` writes nothing, so nothing else invalidates
+    specific_key = (checkout_delta_branch(store, owner, name), symbol, depth, call_depth, bool(cross_repo), include_depth_scores, decorator_filter, include_source, source_budget, include_decisions)
     cached = result_cache_get("get_blast_radius", repo_key, specific_key)
     if cached is not None:
         result = dict(cached)
@@ -380,7 +381,7 @@ def get_blast_radius(
                            "cache_hit": True}
         return _attach_scip_to_blast(result, store, owner, name)
 
-    index = store.load_index(owner, name)
+    index = load_view(store, owner, name)
     if not index:
         return index_status_to_tool_error(store.inspect_index(owner, name))
 
@@ -424,7 +425,7 @@ def get_blast_radius(
     content_cache: dict[str, str] = {}
 
     for imp_file in importer_files:
-        content = store.get_file_content(owner, name, imp_file)
+        content = store.get_file_content(owner, name, imp_file, _index=index)
         if content is not None:
             content_cache[imp_file] = content
         if content is None:
@@ -509,7 +510,7 @@ def get_blast_radius(
         # Any test file reference the affected symbol by name?
         reached = False
         for tf in test_importers:
-            tf_content = content_cache.get(tf) or store.get_file_content(owner, name, tf)
+            tf_content = content_cache.get(tf) or store.get_file_content(owner, name, tf, _index=index)
             if tf_content and _name_in_content(tf_content, sym_name):
                 reached = True
                 break
@@ -528,7 +529,7 @@ def get_blast_radius(
                     if not other_repo_id or other_repo_id == f"{owner}/{name}" or "/" not in other_repo_id:
                         continue
                     other_owner, other_name = other_repo_id.split("/", 1)
-                    other_index = store.load_index(other_owner, other_name)
+                    other_index = load_view(store, other_owner, other_name)
                     if not other_index or not other_index.imports:
                         continue
                     for src_file, file_imports in other_index.imports.items():

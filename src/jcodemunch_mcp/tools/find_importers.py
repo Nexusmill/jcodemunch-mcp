@@ -9,7 +9,7 @@ from ..parser.imports import (
     expand_barrel_leaves,
     resolve_specifier,
 )
-from ._utils import index_status_to_tool_error, resolve_repo
+from ._utils import load_view, index_status_to_tool_error, resolve_repo
 from .package_registry import (
     extract_root_package_from_specifier,
 )
@@ -206,7 +206,7 @@ def _find_cross_repo_importers(
 ) -> list[dict]:
     """Search other indexed repos for files that import from this repo's package."""
     # Look up this repo's package names from its index
-    current_index = store.load_index(owner, name)
+    current_index = load_view(store, owner, name)
     if not current_index:
         return []
     pkg_names = getattr(current_index, "package_names", []) or []
@@ -220,7 +220,7 @@ def _find_cross_repo_importers(
         if not other_repo_id or other_repo_id == repo_id or "/" not in other_repo_id:
             continue
         other_owner, other_name = other_repo_id.split("/", 1)
-        other_index = store.load_index(other_owner, other_name)
+        other_index = load_view(store, other_owner, other_name)
         if not other_index or not other_index.imports:
             continue
 
@@ -300,7 +300,7 @@ def find_importers(
         return {"error": str(e)}
 
     store = IndexStore(base_path=storage_path)
-    index = store.load_index(owner, name)
+    index = load_view(store, owner, name)
     if not index:
         return index_status_to_tool_error(store.inspect_index(owner, name))
 

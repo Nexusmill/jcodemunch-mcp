@@ -5,7 +5,7 @@ from typing import Optional
 
 from ..retrieval.verdict import file_verdict_for_index
 from ..storage import IndexStore, cost_avoided, estimate_savings, record_savings
-from ._utils import index_status_to_tool_error, resolve_repo
+from ._utils import load_view, index_status_to_tool_error, resolve_repo
 
 
 def get_file_content(
@@ -24,7 +24,7 @@ def get_file_content(
         return {"error": str(e)}
 
     store = IndexStore(base_path=storage_path)
-    index = store.load_index(owner, name)
+    index = load_view(store, owner, name)
 
     if not index:
         return index_status_to_tool_error(store.inspect_index(owner, name))

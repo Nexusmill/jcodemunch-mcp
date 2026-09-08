@@ -25,6 +25,7 @@ from typing import Optional
 from ..storage import IndexStore, record_savings, estimate_savings, cost_avoided
 from ..storage.generation import connect_readonly
 from .package_registry import build_package_registry, extract_root_package_from_specifier
+from ._utils import load_view
 
 logger = logging.getLogger(__name__)
 
@@ -204,7 +205,7 @@ def get_group_contracts(
     indexes: dict[str, object] = {}
     for rid in resolved:
         owner, name = rid.split("/", 1)
-        idx = store.load_index(owner, name)
+        idx = load_view(store, owner, name)
         if idx is not None:
             indexes[rid] = idx
 

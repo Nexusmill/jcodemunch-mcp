@@ -140,7 +140,7 @@ class _CountingStore:
         self._real = real
         self.fetches: list[str] = []
 
-    def get_file_content(self, owner, repo, path):
+    def get_file_content(self, owner, repo, path, _index=None):
         self.fetches.append(path)
         return self._real.get_file_content(owner, repo, path)
 

@@ -67,6 +67,9 @@ def summarize_repo(
         return {"error": str(e)}
 
     store = IndexStore(base_path=storage_path)
+    # A WRITER: the summarised symbols are persisted into the BASE index below, so the base
+    # is the only view this may read - the composed view would carry branch-only symbols
+    # into base rows (gate round 4 on B2 part 2).
     index = store.load_index(owner, name)
 
     if not index:

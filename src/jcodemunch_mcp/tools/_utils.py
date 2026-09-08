@@ -190,19 +190,100 @@ def index_status_to_tool_error(status) -> dict:
     }
 
 
+def _delta_branches(store: IndexStore, owner: str, name: str, base) -> frozenset:
+    """Names of the branches the base index holds a delta for, computed once per
+    cached base generation (stashed like _stamp_load_provenance does)."""
+    cached = getattr(base, "_delta_branches", None)
+    if cached is None:
+        try:
+            cached = frozenset(b["branch"] for b in store.list_branches(owner, name))
+        except Exception:
+            logger.debug("list_branches failed for %s/%s", owner, name, exc_info=True)
+            return frozenset()  # transient: never stash a failure as "no deltas" (gate round 2)
+        try:
+            base._delta_branches = cached
+        except Exception:  # pragma: no cover - never break a load
+            pass
+    return cached
+
+
+def _follow_checkout(store: IndexStore, owner: str, name: str, base):
+    """B2: serve the composed view of the branch the source checkout is on.
+
+    Decided ONCE here (spec 2026-09-06-jcm-branch-following, item 2): readers
+    never inspect the filesystem themselves. Base view whenever the checkout
+    is non-git, detached, unreadable, or has no delta in this index.
+    """
+    root = getattr(base, "source_root", "") or ""
+    if not root:
+        return base
+    from .resolve_repo import _checkout_branch_cheap
+    checkout = _checkout_branch_cheap(Path(root))
+    if not checkout or checkout not in _delta_branches(store, owner, name, base):
+        return base
+    composed = store.load_index(owner, name, branch=checkout)
+    return composed if composed is not None else base
+
+
+def checkout_delta_branch(store: IndexStore, owner: str, name: str) -> str:
+    """B2: the branch the source checkout is on when this index holds a delta for it, else
+    "" - the identity of the view `load_view` serves. Result caches key on it: a `git
+    checkout` writes nothing to the index, so no write-based invalidation can ever fire
+    (gate round 1 on B2 part 2, finding 3). Costs one metadata query, one `.git/HEAD` read
+    and one branch_meta query; never hydrates the base index."""
+    root = store.get_source_root(owner, name) or ""
+    if not root:
+        return ""
+    from .resolve_repo import _checkout_branch_cheap
+    checkout = _checkout_branch_cheap(Path(root))
+    if not checkout:
+        return ""
+    try:
+        if any(b.get("branch") == checkout for b in store.list_branches(owner, name)):
+            return checkout
+    except Exception:
+        logger.debug("list_branches failed for %s/%s", owner, name, exc_info=True)
+    return ""
+
+
+def checkout_has_delta(store: IndexStore, owner: str, name: str) -> bool:
+    """B2: True when the source checkout is on a branch this index holds a delta for. A
+    base-only selective view (`open_selective`) is then the WRONG view - the composed one is
+    required - so the narrow path yields to `load_view`."""
+    return bool(checkout_delta_branch(store, owner, name))
+
+
+def load_view(store: IndexStore, owner: str, name: str):
+    """The index view a RETRIEVAL tool should read: the base index, or the composed
+    view of the branch the source checkout is on when a delta exists for it (B2).
+
+    Every reader calls this instead of `store.load_index(owner, name)`; writers keep
+    `load_index` because they decide base-vs-delta themselves. Returns None when the
+    index is missing, exactly like `load_index`.
+    """
+    index = store.load_index(owner, name)
+    if index is None:
+        return None
+    return _follow_checkout(store, owner, name, index)
+
+
 def load_repo_index_or_error(
     repo: str,
     storage_path: Optional[str] = None,
     branch: str = "",
 ) -> tuple[Optional[object], Optional[dict], Optional[object]]:
-    """Resolve and load a repo index, returning a structured error on failure."""
+    """Resolve and load a repo index, returning a structured error on failure.
+
+    With `branch` omitted the checked-out branch is followed when the index
+    holds a delta for it (B2); an explicit `branch` is authoritative.
+    """
     try:
         owner, name = resolve_repo(repo, storage_path)
     except ValueError as e:
         return None, {"error": str(e)}, None
 
     store = IndexStore(base_path=storage_path)
-    index = store.load_index(owner, name, branch=branch)
+    index = store.load_index(owner, name, branch=branch) if branch else load_view(store, owner, name)
     if index is not None:
         return index, None, None
 
@@ -378,7 +459,7 @@ def resolve_fqn(
     except ValueError as e:
         return None, f"Repository not found: {e}"
     store = IndexStore(base_path=storage_path)
-    index = store.load_index(owner, name)
+    index = load_view(store, owner, name)  # a reader: the checkout's view (gate round 4)
     if not index:
         status = store.inspect_index(owner, name)
         err = index_status_to_tool_error(status)

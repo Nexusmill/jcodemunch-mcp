@@ -537,6 +537,10 @@ class IndexStore:
         """Safe-resolved body path for `file_path` in the view `index` describes (B2)."""
         return self._sqlite.content_path(owner, name, file_path, index)
 
+    def get_source_root(self, owner: str, name: str) -> Optional[str]:
+        """Fast metadata-only source_root (no row hydration). Delegates to SQLite."""
+        return self._sqlite.get_source_root(owner, name)
+
     def _safe_content_path(self, content_dir: Path, relative_path: str) -> Optional[Path]:
         """Resolve a content path and ensure it stays within content_dir.
 

@@ -19,7 +19,7 @@ import time
 from typing import Optional
 
 from ..storage import IndexStore, record_savings, estimate_savings, cost_avoided
-from ._utils import index_status_to_tool_error, resolve_repo
+from ._utils import load_view, index_status_to_tool_error, resolve_repo
 from .get_class_hierarchy import _build_class_maps
 from ._scip_consume import open_scip_reader, scip_meta_and_stale, scip_meta_block
 
@@ -203,7 +203,7 @@ def find_implementations(
         return {"error": str(e)}
 
     store = IndexStore(base_path=storage_path)
-    index = store.load_index(owner, name)
+    index = load_view(store, owner, name)
     if not index:
         return index_status_to_tool_error(store.inspect_index(owner, name))
 
@@ -456,7 +456,7 @@ def find_implementations(
             for other_id in other_repos:
                 try:
                     o_owner, o_name = other_id.split("/", 1)
-                    other_idx = store.load_index(o_owner, o_name)
+                    other_idx = load_view(store, o_owner, o_name)
                     if not other_idx:
                         continue
                     # Does the other repo actually depend on us?

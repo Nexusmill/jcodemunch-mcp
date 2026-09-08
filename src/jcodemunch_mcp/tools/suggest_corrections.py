@@ -287,10 +287,10 @@ def suggest_corrections(
             audit = {}
         # Pull current symbol names for vocabulary mapping + staleness re-verify.
         try:
-            from ._utils import resolve_repo as _resolve
+            from ._utils import load_view, resolve_repo as _resolve
             from ..storage import IndexStore
             owner, name = _resolve(repo, storage_path)
-            idx = IndexStore(base_path=storage_path).load_index(owner, name)
+            idx = load_view(IndexStore(base_path=storage_path), owner, name)
             if idx:
                 symbol_names = {s.get("name", "") for s in idx.symbols if s.get("name")}
         except Exception:

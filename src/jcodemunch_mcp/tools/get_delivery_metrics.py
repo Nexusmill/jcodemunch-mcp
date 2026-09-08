@@ -35,7 +35,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from ..storage import IndexStore
-from ._utils import resolve_repo
+from ._utils import load_view, resolve_repo
 from .get_symbol_provenance import _classify_commit
 
 logger = logging.getLogger(__name__)
@@ -122,7 +122,7 @@ def get_delivery_metrics(
         return {"error": str(e)}
 
     store = IndexStore(base_path=storage_path)
-    index = store.load_index(owner, name)
+    index = load_view(store, owner, name)
     if index is None:
         return {"error": f"No index found for {repo!r}. Run index_folder first."}
 

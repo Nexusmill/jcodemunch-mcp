@@ -34,7 +34,7 @@ from collections import defaultdict
 from typing import Any, Optional
 
 from ..storage import IndexStore, record_savings, estimate_savings, cost_avoided
-from ._utils import resolve_repo
+from ._utils import load_view, resolve_repo
 from .pagerank import compute_pagerank
 
 logger = logging.getLogger(__name__)
@@ -235,7 +235,7 @@ def winnow_symbols(
         return {"error": str(e)}
 
     store = IndexStore(base_path=storage_path)
-    index = store.load_index(owner, name)
+    index = load_view(store, owner, name)
     if index is None:
         return {"error": f"No index found for {repo!r}. Run index_folder first."}
 

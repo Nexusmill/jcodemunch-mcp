@@ -10,7 +10,7 @@ from ..parser.imports import (
     expand_barrel_leaves,
     resolve_specifier,
 )
-from ._utils import index_status_to_tool_error, resolve_repo
+from ._utils import load_view, index_status_to_tool_error, resolve_repo
 from .package_registry import extract_root_package_from_specifier
 
 
@@ -119,7 +119,7 @@ def get_dependency_graph(
         return {"error": str(e)}
 
     store = IndexStore(base_path=storage_path)
-    index = store.load_index(owner, name)
+    index = load_view(store, owner, name)
     if not index:
         return index_status_to_tool_error(store.inspect_index(owner, name))
 
@@ -189,7 +189,7 @@ def get_dependency_graph(
                     if not other_repo_id or other_repo_id == repo_id or "/" not in other_repo_id:
                         continue
                     other_owner, other_name = other_repo_id.split("/", 1)
-                    other_index = store.load_index(other_owner, other_name)
+                    other_index = load_view(store, other_owner, other_name)
                     if not other_index:
                         continue
                     other_pkg_names = getattr(other_index, "package_names", []) or []

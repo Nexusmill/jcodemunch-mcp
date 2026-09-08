@@ -289,7 +289,7 @@ def resolve_flow_edges(
     if symbols_by_file is None:
         symbols_by_file = build_symbols_by_file(index)
     if content_cache is None:
-        content_cache = _ContentCache(store, owner, repo_name)
+        content_cache = _ContentCache(store, owner, repo_name, index)
 
     edges: list[dict] = []
     if "route" in kinds:

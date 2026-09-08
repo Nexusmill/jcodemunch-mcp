@@ -56,7 +56,7 @@ class FakeStore:
     def load_index(self, owner, name):
         return None  # Override per test
 
-    def get_file_content(self, owner, name, fpath):
+    def get_file_content(self, owner, name, fpath, _index=None):
         # Returns None if file not found (matching real IndexStore behavior)
         return self._files.get(fpath) if fpath in self._files else None
 

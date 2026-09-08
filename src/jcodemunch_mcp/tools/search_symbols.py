@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 from ..storage import IndexStore, record_savings, estimate_savings, cost_avoided
 from ..parser.imports import resolve_specifier
 from ._utils import (
+    load_view,
     resolve_repo,
     resolve_fqn,
     index_status_to_tool_error,
@@ -726,7 +727,7 @@ def search_symbols(
 
     # Load index
     store = IndexStore(base_path=storage_path)
-    index = store.load_index(owner, name)
+    index = load_view(store, owner, name)
 
     if not index:
         return index_status_to_tool_error(store.inspect_index(owner, name))
@@ -755,6 +756,7 @@ def search_symbols(
             semantic_weight,
             token_budget,
             fusion,
+            getattr(index, "branch", "") or "",  # the view served (B2): a checkout writes nothing
         )
         _cached = _result_cache_get(_cache_key)
         if _cached is not None:

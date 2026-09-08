@@ -21,7 +21,7 @@ from typing import Optional
 
 from ..storage import IndexStore
 from ..parser.imports import resolve_specifier
-from ._utils import resolve_repo as _resolve_repo
+from ._utils import load_view, resolve_repo as _resolve_repo
 from ._call_graph import _word_match, build_symbols_by_file
 # One matcher, not two: entry_point_patterns must mean the same thing in
 # both dead-code tools or #436 gets replaced by a subtler version of itself.
@@ -177,7 +177,7 @@ def _barrel_exports(
         if file_path in visited or depth > MAX_DEPTH:
             return
         visited.add(file_path)
-        content = store.get_file_content(owner, repo_name, file_path)
+        content = store.get_file_content(owner, repo_name, file_path, _index=index)
         if not content:
             return
         # Identifiers literally present in this file (original behavior).
@@ -217,7 +217,7 @@ def _package_json_entries(index, store, owner, repo_name) -> set[str]:
     for f in index.source_files:
         if _filename(f) != "package.json":
             continue
-        content = store.get_file_content(owner, repo_name, f)
+        content = store.get_file_content(owner, repo_name, f, _index=index)
         if not content:
             continue
         try:
@@ -452,7 +452,7 @@ def _sweep_module_level_callers(
         """File text with every symbol's line span removed."""
         if file_path in residue_text_cache:
             return residue_text_cache[file_path]
-        content = store.get_file_content(owner, name, file_path) or ""
+        content = store.get_file_content(owner, name, file_path, _index=index) or ""
         if content:
             lines = content.splitlines()
             covered = bytearray(len(lines))
@@ -549,7 +549,7 @@ def get_dead_code_v2(
     except ValueError as e:
         return {"error": str(e)}
     store = IndexStore(base_path=storage_path)
-    index = store.load_index(owner, name)
+    index = load_view(store, owner, name)
 
     if index is None:
         return {"error": f"No index found for {repo!r}. Run index_folder first."}
@@ -694,7 +694,7 @@ def get_dead_code_v2(
             sym_line = sym.get("line", 0)
             sym_end_line = sym.get("end_line", sym_line)
             if sym_file not in _file_cache:
-                _file_cache[sym_file] = store.get_file_content(owner, name, sym_file) or ""
+                _file_cache[sym_file] = store.get_file_content(owner, name, sym_file, _index=index) or ""
             own_content = _file_cache[sym_file]
             if own_content and sym_line:
                 lines = own_content.splitlines()
@@ -706,7 +706,7 @@ def get_dead_code_v2(
                     continue
             for importer_file in rev.get(sym_file, []):
                 if importer_file not in _file_cache:
-                    _file_cache[importer_file] = store.get_file_content(owner, name, importer_file) or ""
+                    _file_cache[importer_file] = store.get_file_content(owner, name, importer_file, _index=index) or ""
                 content = _file_cache[importer_file]
                 if content and _word_match(content, sym_name):
                     callee_has_caller.add(sym["id"])
