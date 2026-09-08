@@ -136,3 +136,14 @@ One real branch-mode defect, worse than the external review described: no-change
   branch) writes a delta while every tool keeps serving base bytes - consistent, stale,
   silent. Rule: index those repos only from the base branch; a branch view needs
   `delete_index` + re-index on that branch until B2 lands.
+
+## Fixed (B2) 2026-09-07
+
+Retrieval now follows the checked-out branch (spec 2026-09-06-jcm-branch-following, ruled B).
+Part 1 `b3482b0` (content_path resolver, seven reader joins migrated; EV-044). Part 2 `78a76ed`
+(`_checkout_branch_cheap`, `load_view` + the 59-reader migration, view-aware content reads,
+diff baseline, view-keyed result caches; five gate rounds - EV-049). Tests: checkout resolver
+9, commit-free follow suite 20 (three structural guards), real-commit acceptance 13; full suite
+7870 passed, 32 skipped, 0 failed (round-5 run). The live side-branch trap this record describes (an index whose delta is for a branch
+the checkout is not on, or vice versa) is closed by `_follow_checkout`: the composed view is
+served only when the checkout's branch has a delta in this index, else the base.
